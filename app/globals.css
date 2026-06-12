@@ -1,26 +1,303 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #05060c;
+  --bg-raised: #0a0c16;
+  --ember: #ff7a29;
+  --ember-bright: #ffb24d;
+  --laser: #5ee6ff;
+  --steel-bright: #e8ebf2;
+  --steel: #aab2c4;
+  --steel-dim: #6e7687;
+  --text: #edeff5;
+  --muted: #9aa3b5;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-ember: var(--ember);
+  --color-ember-bright: var(--ember-bright);
+  --color-laser: var(--laser);
+  --color-steel: var(--steel);
+  --color-steel-bright: var(--steel-bright);
+  --color-steel-dim: var(--steel-dim);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-grotesk);
+  --font-mono: var(--font-plex);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(255, 122, 41, 0.35);
+  color: #ffffff;
+}
+
+/* ---------- typography ---------- */
+
+.label-mono {
+  font-family: var(--font-plex), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--laser);
+}
+
+.metal-text {
+  background: linear-gradient(
+    168deg,
+    #f7f9fd 0%,
+    #c6cdda 32%,
+    #87909f 52%,
+    #dde2eb 72%,
+    #98a0b1 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ember-text {
+  background: linear-gradient(115deg, #ffd9a0 0%, #ff9a4d 45%, #ff6a1f 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ember-glow {
+  display: inline-block;
+  filter: drop-shadow(0 0 24px rgba(255, 122, 41, 0.4));
+}
+
+/* ---------- surfaces ---------- */
+
+.panel {
+  position: relative;
+  border: 1px solid rgba(154, 165, 196, 0.16);
+  border-radius: 0.875rem;
+  background: linear-gradient(180deg, rgba(22, 26, 41, 0.66), rgba(9, 11, 19, 0.6));
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 4%, rgba(232, 235, 242, 0.38) 50%, transparent 96%);
+  pointer-events: none;
+}
+.panel:hover {
+  border-color: rgba(94, 230, 255, 0.32);
+  box-shadow: 0 0 32px rgba(94, 230, 255, 0.07), 0 14px 40px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(154, 165, 196, 0.22);
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  font-family: var(--font-plex), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel);
+  background: rgba(154, 165, 196, 0.06);
+}
+
+.glow-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(94, 230, 255, 0.4),
+    rgba(255, 122, 41, 0.4),
+    transparent
+  );
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  font-family: var(--font-grotesk), ui-sans-serif, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: transform 0.2s ease, box-shadow 0.3s ease, border-color 0.3s ease,
+    color 0.3s ease;
+}
+.btn-primary {
+  color: #190a01;
+  background: linear-gradient(120deg, #ffb24d, #ff7a29 55%, #ff5a05);
+  box-shadow: 0 0 28px rgba(255, 122, 41, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 44px rgba(255, 122, 41, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn-ghost {
+  color: var(--steel-bright);
+  border: 1px solid rgba(170, 178, 196, 0.4);
+  background: rgba(10, 12, 22, 0.4);
+}
+.btn-ghost:hover {
+  color: var(--laser);
+  border-color: rgba(94, 230, 255, 0.6);
+  box-shadow: 0 0 26px rgba(94, 230, 255, 0.18);
+}
+.btn-sm {
+  padding: 0.55rem 1.05rem;
+  font-size: 0.72rem;
+}
+
+/* ---------- background helpers ---------- */
+
+.bg-grid {
+  background-image: linear-gradient(rgba(154, 165, 196, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154, 165, 196, 0.05) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 35%, transparent 78%);
+}
+
+/* ---------- animations ---------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes laser-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes melt-glow {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+}
+
+@keyframes ember-rise {
+  0% {
+    transform: translateY(2px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(-48px);
+    opacity: 0;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes mesh-dash {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.star {
+  animation: twinkle 3s ease-in-out infinite;
+}
+.laser-beam {
+  animation: laser-pulse 2.8s ease-in-out infinite;
+}
+.melt {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: melt-glow 3.2s ease-in-out infinite;
+}
+.ember-p {
+  opacity: 0;
+  transform-box: fill-box;
+  animation: ember-rise 3.6s linear infinite;
+}
+.blink {
+  animation: blink 1.8s steps(2, start) infinite;
+}
+.mesh-line {
+  stroke-dasharray: 5 8;
+  animation: mesh-dash 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .star,
+  .laser-beam,
+  .melt,
+  .ember-p,
+  .blink,
+  .mesh-line {
+    animation: none;
+  }
+  .ember-p {
+    opacity: 0.5;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
