@@ -48,12 +48,13 @@
 
 .neo-display {
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
   line-height: 0.97;
+  text-transform: uppercase;
 }
 
 .neo-mono {
-  font-family: var(--font-plex), ui-monospace, monospace;
+  font-family: var(--font-cmono), ui-monospace, monospace;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -82,7 +83,7 @@
   gap: 0.6rem;
   border: 2px solid var(--neo-ink);
   padding: 0.75rem 1.5rem;
-  font-family: var(--font-plex), ui-monospace, monospace;
+  font-family: var(--font-cmono), ui-monospace, monospace;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -104,7 +105,7 @@
 }
 
 .neo-link {
-  font-family: var(--font-plex), ui-monospace, monospace;
+  font-family: var(--font-cmono), ui-monospace, monospace;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   transition: background 0.15s ease, color 0.15s ease;
@@ -128,20 +129,3 @@
   padding: 1.5rem;
 }
 
-/* ---------- motion ---------- */
-
-.neo-blink {
-  animation: neo-blink 1.3s steps(2, start) infinite;
-}
-
-@keyframes neo-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .neo-blink {
-    animation: none;
-  }
-}

@@ -16,7 +16,7 @@ function pixelRingCells(r: number, dash = false): [number, number][] {
 }
 
 const MONO: React.CSSProperties = {
-  fontFamily: "var(--font-plex), monospace",
+  fontFamily: "var(--font-cmono), monospace",
   letterSpacing: "0.14em",
   textTransform: "uppercase",
 };

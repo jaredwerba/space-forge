@@ -59,10 +59,6 @@ export default function NeoPage() {
             <span className="hidden items-center gap-2 sm:flex">
               <PixelFlag width={24} /> U.S.A.
             </span>
-            <span className="flex items-center gap-2 text-[var(--neo-gray)]">
-              <span className="neo-blink text-[var(--neo-orange)]">■</span>
-              ACTIVE
-            </span>
             <Link href="/" className="neo-link px-1 text-[var(--neo-gray)]">
               [V.01]
             </Link>
