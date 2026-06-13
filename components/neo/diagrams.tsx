@@ -205,16 +205,18 @@ export function TerraformDiagram({ className = "" }: { className?: string }) {
       {RING_C_GHOST.map(([i, j]) => domeRect(i, j, true))}
       {ACTIVE.map(([i, j]) => domeRect(i, j, false, "var(--neo-orange)"))}
 
-      {/* drones */}
+      {/* drones — hovering */}
       {drones.map(([x, y], k) => (
-        <MiniDrone key={k} x={x} y={y} />
+        <g key={k} className="neo-hover" style={{ animationDelay: `${-k * 0.9}s` }}>
+          <MiniDrone x={x} y={y} />
+        </g>
       ))}
 
-      {/* laser paths — pixelated zap */}
+      {/* laser paths — pixelated zap, anchored into the drone underside */}
       <g stroke="var(--neo-orange)" strokeWidth="2.5">
-        <line className="neo-zap" x1={drones[0][0]} y1={drones[0][1] + 12} x2={p1[0]} y2={p1[1]} />
-        <line className="neo-zap" style={{ animationDelay: "-0.45s" }} x1={drones[1][0]} y1={drones[1][1] + 12} x2={p2[0]} y2={p2[1]} />
-        <line className="neo-zap" style={{ animationDelay: "-0.9s" }} x1={drones[2][0]} y1={drones[2][1] + 12} x2="436" y2="290" />
+        <line className="neo-zap" x1={drones[0][0]} y1={drones[0][1] + 8} x2={p1[0]} y2={p1[1]} />
+        <line className="neo-zap" style={{ animationDelay: "-0.45s" }} x1={drones[1][0]} y1={drones[1][1] + 8} x2={p2[0]} y2={p2[1]} />
+        <line className="neo-zap" style={{ animationDelay: "-0.9s" }} x1={drones[2][0]} y1={drones[2][1] + 8} x2="436" y2="290" />
       </g>
       {/* impact sparks — flash with their beam */}
       <g fill="var(--neo-orange)">
@@ -222,6 +224,26 @@ export function TerraformDiagram({ className = "" }: { className?: string }) {
         <rect className="neo-zap" style={{ animationDelay: "-0.45s" }} x={p2[0] + 1} y={p2[1] - 10} width="5" height="5" />
         <rect className="neo-zap" style={{ animationDelay: "-0.9s" }} x="432" y="280" width="6" height="6" />
       </g>
+      {/* dust popping up from the cuts */}
+      {[
+        { x: p1[0] - 3, y: p1[1] - 7, d: "0s" },
+        { x: p1[0] + 2, y: p1[1] - 4, d: "-0.7s" },
+        { x: p2[0] + 2, y: p2[1] - 7, d: "-1.1s" },
+        { x: p2[0] - 4, y: p2[1] - 3, d: "-1.6s" },
+        { x: 433, y: 286, d: "-0.4s" },
+        { x: 440, y: 283, d: "-1.3s" },
+      ].map((p, i) => (
+        <rect
+          key={`du${i}`}
+          className="neo-dust"
+          x={p.x}
+          y={p.y}
+          width="3"
+          height="3"
+          fill="currentColor"
+          style={{ animationDelay: p.d }}
+        />
+      ))}
 
       {/* regolith intake pile */}
       <g fill="currentColor">

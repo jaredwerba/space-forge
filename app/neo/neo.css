@@ -302,6 +302,20 @@
   }
 }
 
+/* hovering drones */
+.neo-hover {
+  animation: neo-hover 3s ease-in-out infinite;
+}
+@keyframes neo-hover {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .neo-beam,
   .neo-melt,
@@ -309,7 +323,8 @@
   .neo-wheel,
   .neo-zap,
   .neo-cut-head,
-  .neo-dust {
+  .neo-dust,
+  .neo-hover {
     animation: none;
   }
 }
