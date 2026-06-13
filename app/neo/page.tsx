@@ -48,7 +48,7 @@ export default function NeoPage() {
     <div className="neo-root min-h-screen">
       {/* ====== header ====== */}
       <header
-        className="neo-dark sticky top-0 z-50 border-b border-[var(--neo-ink)]"
+        className="neo-dark border-b border-[var(--neo-ink)]"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="mx-auto flex w-full max-w-[1140px] items-center justify-between gap-6 px-6 py-3.5">
