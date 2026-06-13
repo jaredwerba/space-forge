@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Chevrons, PixelFlag, PixelMoon } from "@/components/neo/marks";
@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   title: "LunarForge — Build the Reactor Housing on the Moon",
   description:
     "Mobile autonomous laser sintering. Lunar regolith fused into the structural and thermal infrastructure that makes surface fission possible. Launch the core — we build the rest.",
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#161613",
 };
 
 const ink = "border-[var(--neo-ink)]";
@@ -42,7 +47,10 @@ export default function NeoPage() {
   return (
     <div className="neo-root min-h-screen">
       {/* ====== header ====== */}
-      <header className="neo-dark sticky top-0 z-50 border-b border-[var(--neo-ink)]">
+      <header
+        className="neo-dark sticky top-0 z-50 border-b border-[var(--neo-ink)]"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="mx-auto flex w-full max-w-[1140px] items-center justify-between gap-6 px-6 py-3.5">
           <div className="flex items-center gap-7">
             <nav className="neo-mono hidden gap-7 text-[11px] text-[var(--neo-gray)] md:flex">
@@ -590,8 +598,8 @@ export default function NeoPage() {
         </div>
         <div className={`border-t ${ink}/30`}>
           <p className="neo-mono mx-auto w-full max-w-[1140px] px-6 py-4 text-[9px] text-[var(--neo-gray)]">
-            © 2026 LUNARFORGE — A THEORETICAL CONCEPT COMPANY. ALL
-            SPECIFICATIONS, DATES, AND FIGURES ARE ILLUSTRATIVE.
+            © 2026 LUNARFORGE — ALL SPECIFICATIONS, DATES, AND FIGURES
+            ARE ILLUSTRATIVE.
           </p>
         </div>
       </footer>

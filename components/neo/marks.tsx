@@ -60,6 +60,15 @@ export function PixelMoon({ className = "" }: { className?: string }) {
     [0, R - 1], [-1, R - 1], [1, R - 1], [0, R - 2], [-1, R - 2],
     [1, R - 2], [-2, R - 1], [2, R - 1], [0, R - 3],
   ];
+  // ablated pixel dust drifting up from the cut point
+  const dust = [
+    { x: -11, y: 152, s: 3, d: "0s" },
+    { x: 5, y: 156, s: 4, d: "-0.9s" },
+    { x: -3, y: 150, s: 3, d: "-1.6s" },
+    { x: 10, y: 154, s: 3, d: "-2.2s" },
+    { x: -8, y: 158, s: 4, d: "-1.2s" },
+    { x: 2, y: 151, s: 3, d: "-0.5s" },
+  ];
   return (
     <svg
       viewBox={`${-(R + 1) * C} ${-(R + 3.5) * C} ${(2 * R + 2) * C} ${(2 * R + 6) * C}`}
@@ -70,8 +79,29 @@ export function PixelMoon({ className = "" }: { className?: string }) {
       {moon}
       {ground}
       {laser}
+      {/* bright cut-head travelling down the beam — reads as active cutting */}
+      <rect
+        className="neo-cut-head"
+        x={-C / 2}
+        y={-R * C}
+        width={C}
+        height={C * 1.4}
+        fill="#ffc46b"
+      />
       {burst.map(([i, j]) => (
         <rect key={`b${i}_${j}`} x={i * C} y={j * C} width={C} height={C} fill="#ff7a1e" />
+      ))}
+      {dust.map((p, i) => (
+        <rect
+          key={`d${i}`}
+          className="neo-dust"
+          x={p.x}
+          y={p.y}
+          width={p.s}
+          height={p.s}
+          fill="#d8c2a0"
+          style={{ animationDelay: p.d }}
+        />
       ))}
     </svg>
   );

@@ -263,12 +263,53 @@
   }
 }
 
+/* pixel-moon laser cutting — travelling cut-head + ablated dust, no glow */
+.neo-cut-head {
+  transform-box: fill-box;
+  animation: neo-cut 1.3s linear infinite;
+}
+@keyframes neo-cut {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(300px);
+    opacity: 0;
+  }
+}
+.neo-dust {
+  transform-box: fill-box;
+  animation: neo-dust 2.6s linear infinite;
+}
+@keyframes neo-dust {
+  0% {
+    transform: translateY(2px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-46px);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .neo-beam,
   .neo-melt,
   .neo-emit,
   .neo-wheel,
-  .neo-zap {
+  .neo-zap,
+  .neo-cut-head,
+  .neo-dust {
     animation: none;
   }
 }
