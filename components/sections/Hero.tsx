@@ -2,10 +2,10 @@ import HeroScene from "@/components/HeroScene";
 import Reveal from "@/components/Reveal";
 
 const stats = [
-  { value: "100 kWe", label: "Target fission output" },
-  { value: "95%", label: "Reactor mass forged in-situ" },
-  { value: "Fe · Ti · Al", label: "Metals refined from regolith" },
-  { value: "2034", label: "First criticality" },
+  { value: "28 kg", label: "The actual reactor core" },
+  { value: "$1M+", label: "Per kilogram to the surface" },
+  { value: "40%+", label: "Of regolith is Fe · Ti · Al" },
+  { value: "2027", label: "First demo on the Moon" },
 ];
 
 export default function Hero() {
@@ -20,7 +20,7 @@ export default function Hero() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 pt-28 pb-10">
         <Reveal>
           <p className="label-mono mb-5">
-            In-situ lunar manufacturing — est. 2026
+            Lunar surface infrastructure — est. 2026
           </p>
         </Reveal>
         <Reveal delay={120}>
@@ -33,9 +33,9 @@ export default function Hero() {
         </Reveal>
         <Reveal delay={240}>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-            SpaceForge turns regolith into iron, titanium, and aluminum
-            structures using AI-powered lasers. We forge the reactor on site —
-            so humanity doesn&apos;t have to launch it.
+            LunarForge turns regolith into iron, titanium, and aluminum
+            structures using AI-powered lasers. Launch the core — we build the
+            rest.
           </p>
         </Reveal>
         <Reveal delay={360}>

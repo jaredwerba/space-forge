@@ -13,24 +13,24 @@ const VSTARS = Array.from({ length: 26 }, () => ({
 
 const milestones = [
   {
+    year: "2018",
+    text: "NASA's KRUSTY validates the architecture: 10 kW of fission from a 28 kg core",
+  },
+  {
+    year: "2026",
+    text: "DLR & LZH-proven regolith sintering productized into a mobile unit; NASA reauthorization funds surface nuclear",
+  },
+  {
     year: "2027",
-    text: "PROPS rovers complete field trials in terrestrial analog regolith",
+    text: "Sintering prototype rides Blue Origin's Blue Moon MK1 — first end-to-end demonstration on the surface",
   },
   {
     year: "2029",
-    text: "First lunar sinter — one tonne of regolith fused on the surface",
+    text: "All four classes of reactor infrastructure produced in place around a landed core",
   },
   {
-    year: "2031",
-    text: "The Space Forge comes online; structural production begins",
-  },
-  {
-    year: "2034",
-    text: "The core lands from Earth. First criticality.",
-  },
-  {
-    year: "2035+",
-    text: "Grid power for humanity's first permanent lunar base",
+    year: "2030s",
+    text: "Surface fission at scale — baseload power for the lunar economy",
   },
 ];
 
@@ -180,11 +180,11 @@ export default function Vision() {
           label="Vision"
           title={
             <>
-              A reactor forged from{" "}
+              A reactor housed by{" "}
               <span className="ember-text">the world it powers.</span>
             </>
           }
-          lead="By 2034, a dome of fused regolith on a quiet crater rim hums with 100 kilowatts of fission power — built by machines, from dust, before anyone arrived to need it. Then it never stops. That is what SpaceForge exists to build: a fully working fission reactor powering humanity's permanent return to the Moon."
+          lead="A sintering prototype on the Moon as early as 2027 — a real surface demonstration in 18 months, not a roadmap to a roadmap. Then the four classes of reactor infrastructure, produced in place around a landed core. No new rocket, no new reactor, no new physics. We integrate — and surface fission powers humanity's permanent return to the Moon."
         />
 
         <Reveal delay={150}>
@@ -215,15 +215,13 @@ export default function Vision() {
         <Reveal delay={200}>
           <div className="mt-20 flex flex-col items-center gap-5 text-center">
             <p className="font-display text-2xl font-bold leading-snug tracking-tight md:text-3xl">
-              <span className="metal-text">
-                The Moon doesn&apos;t need a power line from Earth.
-              </span>
+              <span className="metal-text">Launch the core.</span>
               <br />
               <span className="ember-glow">
-                <span className="ember-text">It needs a forge.</span>
+                <span className="ember-text">We build the rest.</span>
               </span>
             </p>
-            <a href="mailto:hello@spaceforge.moon" className="btn btn-primary mt-2">
+            <a href="mailto:hello@lunarforge.moon" className="btn btn-primary mt-2">
               Follow the Build
             </a>
           </div>

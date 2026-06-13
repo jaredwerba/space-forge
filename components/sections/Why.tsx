@@ -3,35 +3,35 @@ import SectionHeading from "@/components/SectionHeading";
 
 const stats = [
   {
-    value: "60 t",
-    label: "of structure & shielding forged per reactor — none of it launched",
+    value: "$1M+",
+    label: "per kilogram launched, transferred, and landed on the Moon",
   },
   {
-    value: "95%",
-    label: "of launch mass deleted vs. an Earth-built reactor",
+    value: "1,000s kg",
+    label: "of shielding, containment, and thermal hardware per reactor",
   },
   {
-    value: "100×",
-    label: "lower cost per shielded kilowatt at production scale",
+    value: "28 kg",
+    label: "the actual KRUSTY-class core — the only part that has to fly",
   },
   {
-    value: "14 days",
-    label: "of lunar night crossed at full power, every month",
+    value: "40%+",
+    label: "of mare regolith is iron, titanium, and aluminum by mass",
   },
 ];
 
 const reasons = [
   {
-    title: "Weight savings",
-    body: "Shielding is dumb mass — tens of tons of it. It's the last thing that should ride a rocket and the first thing a forge should make. Only the core and its electronics fly.",
+    title: "The core is small",
+    body: "Everything around it is heavy. Shielding and structural housings dominate the mass budget of any surface fission system — and they're exactly the parts a forge can make. Only the core and its electronics fly.",
   },
   {
-    title: "Cost reduction",
-    body: "Surface delivery runs roughly a million dollars per kilogram today. Every kilogram forged on-site is a kilogram off the manifest — the forge pays for itself on the first shield ring.",
+    title: "Delete the manifest",
+    body: "Mass is the constraint that defines the architecture. At a million dollars per landed kilogram, thousands of kilograms of housing that never launch is the entire business case — the forge pays for itself on the first shield ring.",
   },
   {
-    title: "The pathway",
-    body: "Power-rich bases beget industry: propellant plants, habitats, science at scale. And regolith is everywhere. What we prove on the Moon travels to Mars — and beyond.",
+    title: "Surface power is funded",
+    body: "NASA's FY27 proposal puts $675M+ into space nuclear, with bipartisan reauthorization behind it. The reactors are coming. Surface manufacturing is the gap — and that is what we close.",
   },
 ];
 
@@ -49,7 +49,7 @@ export default function Why() {
               <span className="metal-text">not launching steel.</span>
             </>
           }
-          lead="Launch cost is the tax on everything in space. In-situ forging deletes that tax for the heaviest parts of the heaviest machine humanity needs up there."
+          lead="Launch cost is the tax on everything in space. In-situ sintering deletes that tax for the heaviest parts of the heaviest machine the lunar economy depends on."
         />
 
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -82,8 +82,8 @@ export default function Why() {
 
         <Reveal delay={200}>
           <p className="font-display mt-16 text-center text-2xl font-bold tracking-tight md:text-3xl">
-            <span className="metal-text">Learn on the Moon.</span>{" "}
-            <span className="ember-text">Repeat on Mars.</span>
+            <span className="metal-text">The science is done.</span>{" "}
+            <span className="ember-text">The execution is the moat.</span>
           </p>
         </Reveal>
       </div>

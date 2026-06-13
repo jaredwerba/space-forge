@@ -15,7 +15,7 @@ export default function Nav() {
         <a href="#top" className="flex items-center gap-2.5">
           <LogoMark />
           <span className="font-display text-sm font-bold tracking-[0.22em] text-steel-bright">
-            SPACE<span className="ember-text">FORGE</span>
+            LUNAR<span className="ember-text">FORGE</span>
           </span>
         </a>
         <nav className="hidden items-center gap-7 text-sm text-muted md:flex">

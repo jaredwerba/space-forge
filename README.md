@@ -1,12 +1,15 @@
-# SpaceForge — Building Power on the Moon
+# LunarForge — Building Power on the Moon
 
-Landing page for **SpaceForge**, a theoretical space infrastructure company building
-the first fully operational fission reactor on the Moon — by forging its shielding,
-structure, and radiators in-situ from lunar regolith with AI-powered lasers.
+Landing page for **LunarForge**, a theoretical space infrastructure company building
+the housing for the first operational fission reactor on the Moon — radiation
+shielding, containment vessels, Stirling housings, and radiators sintered in-situ
+from lunar regolith by mobile autonomous lasers.
 
-> *Core from Earth. Everything else from the Moon.*
+> *Launch the core. We build the rest.*
 
-**SpaceForge is a fictional concept.** All specifications, dates, and figures are illustrative.
+**LunarForge is a fictional concept.** All specifications, dates, and figures are illustrative.
+Two design directions live side by side: the cinematic v1 at `/` and the
+brasshands-inspired NEO-industrial version at `/neo`.
 
 ## Stack
 

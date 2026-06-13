@@ -14,9 +14,9 @@ import { DroneBlueprint, TerraformDiagram } from "@/components/neo/diagrams";
 import "./neo.css";
 
 export const metadata: Metadata = {
-  title: "SpaceForge — NEO-IND / An American Industrial Revival",
+  title: "LunarForge — NEO-IND / An American Industrial Revival",
   description:
-    "Drones shoot lasers. Lasers charge moon dust. Dust becomes the building around a fission reactor. SpaceForge NEO — heavy industry for the new space age.",
+    "Drones shoot lasers. Lasers charge moon dust. Dust becomes the building around a fission reactor. LunarForge NEO — launch the core, we build the rest.",
 };
 
 const ink = "border-[var(--neo-ink)]";
@@ -27,7 +27,7 @@ export default function NeoPage() {
       {/* ====== top operational bar ====== */}
       <header className="neo-mono text-[10px] text-[var(--neo-steel)]">
         <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-x-8 gap-y-1 px-4 py-3">
-          <span>UNIT ID SF-NEO-02 — CONTINUOUS OPERATIONAL CONTROL</span>
+          <span>UNIT ID LF-NEO-02 — CONTINUOUS OPERATIONAL CONTROL</span>
           <span className="hidden lg:inline">
             INTERNAL SYSTEMS NODE / CLEARANCE REQUIRED
           </span>
@@ -52,9 +52,9 @@ export default function NeoPage() {
               <div className="flex flex-wrap items-start justify-between gap-8">
                 <div>
                   <p className="neo-display text-3xl md:text-4xl">
-                    SpaceForge
+                    LunarForge
                     <br />
-                    Lunar Works
+                    Future Work
                   </p>
                   <p className="neo-mono mt-4 text-[10px]">
                     Forward thinkers&nbsp;&nbsp;■ ■ ■
@@ -122,9 +122,10 @@ export default function NeoPage() {
               <p className="neo-mono text-[11px] font-semibold">AI PLAYGROUND</p>
               <p className="neo-mono mt-3 max-w-xs text-[10px] leading-relaxed normal-case">
                 Dust Laboratory operates at the intersection of autonomous
-                laser swarms and applied fission engineering. Our research
-                focuses on regolith capture, in-situ metallurgy, and printed
-                reactor architecture.
+                laser swarms and applied fission engineering. Launch what you
+                have to launch — build everything else where you need it. We
+                don&apos;t ship the housing. We sinter it from the dust under
+                the lander.
               </p>
             </div>
             <div className="neo-mono text-[11px]">
@@ -135,7 +136,7 @@ export default function NeoPage() {
               <p>V 2.0</p>
               <p className="mt-2">UTILITY</p>
             </div>
-            <Barcode height={34} label="021-928-SF" />
+            <Barcode height={34} label="021-928-LF" />
           </div>
         </section>
 
@@ -157,15 +158,15 @@ export default function NeoPage() {
                 Nuclear
               </p>
               <p className="neo-mono mt-6 max-w-sm text-[10px] leading-relaxed normal-case">
-                The advanced systems unit operates at the edge of lunar
-                engineering. This division develops, tests, and hardens
-                next-generation reactor systems designed for long-term grid
-                stability, rapid deployment, and uncompromising safety —
-                printed from the Moon itself.
+                The lunar economy runs on fission. 14-day nights, no
+                atmosphere, and energy demands solar cannot meet. KRUSTY
+                proved the reactor runs on a 28 kg core — the core is small,
+                everything around it is heavy. We print the heavy part from
+                the Moon itself.
               </p>
               <div className="neo-mono mt-8 space-y-1 text-[10px]">
                 <p>NUCLEAR ENERGY SYSTEMS</p>
-                <p>SERIAL: SF-02</p>
+                <p>SERIAL: LF-02</p>
                 <p>CLEARANCE: GRID CRITICAL</p>
                 <p>MADE FOR CONTINUOUS OPERATION</p>
               </div>
@@ -173,7 +174,7 @@ export default function NeoPage() {
             <div className="flex flex-col items-center gap-5">
               <StripedMoon size={300} className="max-w-full" />
               <p className="neo-mono text-[10px] tracking-[0.5em]">
-                SPACEFORGE ®
+                LUNARFORGE ®
               </p>
             </div>
           </div>
@@ -213,9 +214,9 @@ export default function NeoPage() {
               <span key={k} className="flex items-center">
                 {[
                   "AMERICA GOING NUCLEAR",
-                  "FROM DUST TO FISSION",
+                  "LAUNCH THE CORE — WE BUILD THE REST",
                   "DRONES · LASERS · MOON DUST · REACTOR",
-                  "DESIGNING FOR THE NEW INDUSTRIAL AGE",
+                  "THE SCIENCE IS DONE — THE EXECUTION IS THE MOAT",
                   "MADE IN USA — DEPLOYED ON LUNA",
                 ].map((t) => (
                   <span key={t} className="flex items-center">
@@ -308,7 +309,7 @@ export default function NeoPage() {
 
             <div className={`border-b-2 md:border-b-0 md:border-r-2 ${ink}`}>
               <div className={`neo-mono flex justify-between border-b-2 ${ink} p-4 text-[10px]`}>
-                <span>SF-NEO TERRAFORM SITE</span>
+                <span>LF-NEO TERRAFORM SITE</span>
                 <span>P1 → NEO</span>
               </div>
               <div className="p-6 md:p-8">
@@ -352,7 +353,7 @@ export default function NeoPage() {
                   <span>OUTPUT</span>
                 </div>
                 {[
-                  ["POWER", "100 KWE FISSION CORE", "CONTINUOUS DUTY"],
+                  ["POWER", "28 KG KRUSTY-CLASS CORE", "CONTINUOUS DUTY"],
                   ["SWARM", "24 DR-01 UNITS", "ROUND-THE-CLOCK PRINT"],
                   ["LAYER", "8 MM REGOLITH COURSE", "1.2 M WALL PER WEEK"],
                   ["SHIELD", "4 M PRINTED SHELL", "RADIATION SAFE"],
@@ -414,7 +415,7 @@ export default function NeoPage() {
               <div className={`inline-flex items-center gap-4 border-2 ${ink} p-3`}>
                 <PixelDrone size={52} />
                 <div>
-                  <p className="neo-display text-2xl">SF-IND</p>
+                  <p className="neo-display text-2xl">LF-IND</p>
                   <p className="neo-mono mt-1 text-[8.5px] font-semibold">
                     MACHINES FOR A STRONGER AMERICA
                     <br />
@@ -423,14 +424,14 @@ export default function NeoPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="neo-display text-3xl">SF-IND</p>
+                <p className="neo-display text-3xl">LF-IND</p>
                 <p className="neo-mono mt-1 text-[10px]">
-                  SPACEFORGE MACHINES INC.
+                  LUNARFORGE MACHINES INC.
                   <br />
                   INDUSTRIAL SYSTEMS DIVISION
                 </p>
                 <p className="neo-bar neo-mono mt-2 inline-block text-[9px]">
-                  SF-MFG-01
+                  LF-MFG-01
                 </p>
               </div>
             </div>
@@ -440,7 +441,7 @@ export default function NeoPage() {
               <p className="flex items-center gap-2">
                 NY, NY <PixelFlag width={26} /> U.S.A.
               </p>
-              <p className="mt-2">UNIT ID: SF-FU-01</p>
+              <p className="mt-2">UNIT ID: LF-FU-01</p>
               <p>STATUS: ACTIVE</p>
               <p>CLEARANCE: LEVEL 3</p>
               <p>LOCATION: OFF WORLD</p>
@@ -558,7 +559,7 @@ export default function NeoPage() {
       {/* ====== footer ====== */}
       <footer className="neo-mono border-t border-[#3a3a3a] text-[10px] text-[var(--neo-steel)]">
         <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-x-8 gap-y-2 px-4 py-5">
-          <span>© 2026 SPACEFORGE LLC — ALL WORK IS OUR OWN</span>
+          <span>© 2026 LUNARFORGE LLC — ALL WORK IS OUR OWN</span>
           <span className="hidden md:inline">
             DESIGNING FOR THE NEW INDUSTRIAL AGE
           </span>
@@ -570,7 +571,7 @@ export default function NeoPage() {
           </span>
         </div>
         <p className="mx-auto w-full max-w-[1180px] px-4 pb-5 text-[9px] opacity-70">
-          SPACEFORGE IS A THEORETICAL CONCEPT COMPANY. ALL SPECIFICATIONS,
+          LUNARFORGE IS A THEORETICAL CONCEPT COMPANY. ALL SPECIFICATIONS,
           DATES, AND FIGURES ARE ILLUSTRATIVE.
         </p>
       </footer>

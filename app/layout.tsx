@@ -25,15 +25,15 @@ const silkscreen = Silkscreen({
 });
 
 export const metadata: Metadata = {
-  title: "SpaceForge — Building Power on the Moon",
+  title: "LunarForge — Building Power on the Moon",
   description:
-    "SpaceForge turns lunar regolith into iron, titanium, and aluminum structures using AI-powered lasers — forging the first operational fission reactor on the Moon, from dust to fission.",
+    "LunarForge turns lunar regolith into iron, titanium, and aluminum structures using AI-powered lasers. Launch the core — we build the rest: reactor housing sintered in-situ on the Moon.",
   openGraph: {
-    title: "SpaceForge — Building Power on the Moon",
+    title: "LunarForge — Building Power on the Moon",
     description:
-      "From dust to fission: reactor components forged in-situ from lunar regolith.",
+      "From dust to fission: reactor housing sintered in-situ from lunar regolith.",
     type: "website",
-    siteName: "SpaceForge",
+    siteName: "LunarForge",
   },
 };
 

@@ -2,7 +2,7 @@ import LogoMark from "./LogoMark";
 
 const links = [
   { href: "#mission", label: "Mission" },
-  { href: "#forge", label: "The Space Forge" },
+  { href: "#forge", label: "The Lunar Forge" },
   { href: "#technology", label: "Technology" },
   { href: "#why", label: "Why It Matters" },
   { href: "#vision", label: "Vision" },
@@ -16,12 +16,12 @@ export default function Footer() {
           <a href="#top" className="flex items-center gap-2.5">
             <LogoMark />
             <span className="font-display text-sm font-bold tracking-[0.22em] text-steel-bright">
-              SPACE<span className="ember-text">FORGE</span>
+              LUNAR<span className="ember-text">FORGE</span>
             </span>
           </a>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
-            Building power on the Moon — from dust to fission. Reactor
-            components forged in-situ from lunar regolith.
+            Building power on the Moon — from dust to fission. Launch the
+            core; the housing is sintered in-situ from lunar regolith.
           </p>
         </div>
         <div>
@@ -46,20 +46,20 @@ export default function Footer() {
             Contact
           </p>
           <a
-            href="mailto:hello@spaceforge.moon"
+            href="mailto:hello@lunarforge.moon"
             className="text-sm text-laser transition-colors hover:text-white"
           >
-            hello@spaceforge.moon
+            hello@lunarforge.moon
           </a>
           <p className="mt-6 text-xs leading-relaxed text-steel-dim">
-            SpaceForge is a theoretical concept company. All specifications,
+            LunarForge is a theoretical concept company. All specifications,
             dates, and figures on this site are illustrative.
           </p>
         </div>
       </div>
       <div className="border-t border-white/[0.06] px-6 py-5">
         <p className="mx-auto max-w-6xl font-mono text-[0.65rem] uppercase tracking-[0.2em] text-steel-dim">
-          © 2026 SpaceForge — Forged from dust. Powered by fission.
+          © 2026 LunarForge — Launch the core. We build the rest.
         </p>
       </div>
     </footer>

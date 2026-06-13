@@ -1,10 +1,11 @@
 import Reveal from "@/components/Reveal";
 import SectionHeading from "@/components/SectionHeading";
 
-type StepIconKind = "excavate" | "sort" | "extract" | "refine" | "forge";
+type StepIconKind = "extract" | "process" | "sinter" | "deploy";
 
 const steps: {
   num: string;
+  label: string;
   title: string;
   icon: StepIconKind;
   body: string;
@@ -12,75 +13,66 @@ const steps: {
 }[] = [
   {
     num: "01",
-    title: "Excavate",
-    icon: "excavate",
-    body: "PROPS rovers strip-mine the top half-meter of ilmenite-rich mare soil — no blasting, no consumables, just buckets and patience.",
-    out: ["Raw regolith"],
+    label: "Extract",
+    title: "Beneficiate regolith",
+    icon: "extract",
+    body: "The mobile system traverses the surface, separating iron, titanium, and aluminum from raw lunar regolith — no blasting, no consumables.",
+    out: ["Fe", "Ti", "Al"],
   },
   {
     num: "02",
-    title: "Sort",
-    icon: "sort",
-    body: "Electrostatic and magnetic separation split every scoop by mineral. AI vision grades each batch before it reaches a furnace.",
-    out: ["Ilmenite", "Anorthite", "Iron fines"],
+    label: "Process",
+    title: "Feedstock prep",
+    icon: "process",
+    body: "Metals are sized, sorted, and conditioned into a powder feedstock suitable for laser sintering at scale.",
+    out: ["Powder", "Wire"],
   },
   {
     num: "03",
-    title: "Extract",
-    icon: "extract",
-    body: "Multi-process metallurgy: molten regolith electrolysis pulls iron and silicon, hydrogen reduction frees titanium from ilmenite, and a carbothermal loop strips aluminum from anorthite.",
-    out: ["Fe", "Ti", "Al", "O₂"],
+    label: "Sinter",
+    title: "Laser fusion",
+    icon: "sinter",
+    body: "Layer-by-layer sintering builds dense structural and thermal components directly on the lunar surface, in hard vacuum.",
+    out: ["Plate", "Rings", "Trusses"],
   },
   {
     num: "04",
-    title: "Refine",
-    icon: "refine",
-    body: "Laser remelting in hard vacuum — the cleanest foundry conditions in the solar system — alloys raw metal into certified feedstock.",
-    out: ["Wire", "Plate", "Powder"],
-  },
-  {
-    num: "05",
-    title: "Forge",
-    icon: "forge",
-    body: "The laser network sinters and welds, layer by layer, through day and night. Structures too big to launch are grown in place instead.",
-    out: ["Shield rings", "Trusses", "Radiators"],
+    label: "Deploy",
+    title: "Assemble in place",
+    icon: "deploy",
+    body: "Shielding, containment, and thermal hardware are produced on-site, around the launched reactor core — no crew required.",
+    out: ["Reactor housing"],
   },
 ];
 
 function StepIcon({ kind }: { kind: StepIconKind }) {
   const paths: Record<StepIconKind, React.ReactNode> = {
-    excavate: (
+    extract: (
       <>
         <path d="M4 20h16" />
         <path d="M6.5 9.5 12 5l3.5 3-4 5.5z" />
         <path d="M13 12l5 6" />
       </>
     ),
-    sort: (
+    process: (
       <>
         <path d="M7 3.5v6a5 5 0 0 0 10 0v-6" />
         <path d="M7 3.5h3.4M13.6 3.5H17" />
         <path d="M9 17.5v2M12 18.5v2M15 17.5v2" />
       </>
     ),
-    extract: (
-      <>
-        <path d="M5.5 4.5h13l-1.8 10.5a4.2 4.2 0 0 1-4.1 3.5h-1.2a4.2 4.2 0 0 1-4.1-3.5z" />
-        <path d="M9 8.5c1.8 1 4.2 1 6 0" />
-      </>
-    ),
-    refine: (
-      <>
-        <path d="M8.5 8.5h7l3.2 7H5.3z" />
-        <path d="M9.5 12h5" />
-        <path d="M12 3.5v2.5" />
-      </>
-    ),
-    forge: (
+    sinter: (
       <>
         <path d="M9 3.5h6v4.8L12 11.5 9 8.3z" />
         <path d="M12 11.5v6" strokeDasharray="2.5 2" />
         <path d="M9 20.5h6" />
+      </>
+    ),
+    deploy: (
+      <>
+        <path d="M5 20.5h14" />
+        <path d="M7 20.5a5 5 0 0 1 10 0" />
+        <path d="M12 3.5v4M12 9.5v2" />
       </>
     ),
   };
@@ -107,27 +99,27 @@ export default function Forge() {
       <div className="relative mx-auto w-full max-w-6xl px-6">
         <SectionHeading
           index="02"
-          label="The Space Forge"
+          label="The Lunar Forge"
           title={
             <>
-              From gray dust to{" "}
-              <span className="metal-text">gleaming metal.</span>
+              Mobile autonomous{" "}
+              <span className="metal-text">laser sintering.</span>
             </>
           }
-          lead="The Space Forge lands as cargo and unfolds into an industrial site. Regolith goes in one end; certified structural metal comes out the other. Five stages, one continuous process — running through the lunar day and the lunar night."
+          lead="A single mobile system extracts metals from regolith and fuses them into structural and thermal hardware on the surface, in place, without crew. Raw dust goes in one end; reactor housing comes out the other."
         />
         <div className="relative mt-14">
           <div
             aria-hidden
             className="absolute left-0 right-0 top-1/2 hidden h-px bg-[linear-gradient(90deg,transparent,rgba(94,230,255,0.35),rgba(255,122,41,0.35),transparent)] lg:block"
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
               <Reveal key={s.num} delay={i * 90} className="h-full">
                 <div className="panel h-full p-5">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[0.65rem] tracking-[0.22em] text-steel-dim">
-                      {s.num}
+                      {s.num} · {s.label.toUpperCase()}
                     </span>
                     <span className="text-laser">
                       <StepIcon kind={s.icon} />
@@ -154,12 +146,13 @@ export default function Forge() {
         <Reveal delay={200}>
           <div className="panel mt-8 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:gap-6">
             <span className="shrink-0 font-mono text-xs uppercase tracking-[0.25em] text-laser">
-              Byproduct
+              Validated
             </span>
             <p className="text-sm leading-relaxed text-muted">
-              Metal is only half the yield: every tonne of refined structure
-              liberates roughly 400&nbsp;kg of oxygen — breathable air and
-              oxidizer, banked for the base that follows.
+              Laser sintering of lunar regolith simulants has been demonstrated
+              in flight-relevant conditions by the German Aerospace Center
+              (DLR) and Laser Zentrum Hannover (LZH). We are productizing what
+              the labs have already proven.
             </p>
           </div>
         </Reveal>

@@ -6,13 +6,13 @@ const specs: [string, string][] = [
   ["Laser head", "12 kW fiber array"],
   ["Autonomy", "48 h unsupervised"],
   ["Haul capacity", "1.4 t per sortie"],
-  ["Fleet per site", "12 units"],
+  ["Payload class", "Ride-share (3 t MK1)"],
 ];
 
 const netFeatures = [
-  "24 mast-mounted emitters triangulate on a single melt pool",
-  "Closed-loop control at 10 kHz — reading melt-pool spectra in real time",
-  "Swarm scheduler balances mining, refining, and forging across the fleet",
+  "Emitters triangulate on a single melt pool",
+  "Closed-loop melt-pool spectrometry at 10 kHz",
+  "Swarm scheduler balances mining, processing, and sintering",
   "Trained on a million simulated melts before the first real one",
 ];
 
@@ -203,7 +203,7 @@ export default function Technology() {
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">
                 Photonic Regolith Operations &amp; Processing System. PROPS does
-                every physical job on site — excavation, hopper runs, optics
+                every physical job on site — excavation, beneficiation, optics
                 positioning, tool changes. Lose one, and the swarm reroutes
                 around it.
               </p>
@@ -258,11 +258,16 @@ export default function Technology() {
 
         <Reveal delay={150}>
           <div className="panel mt-8 overflow-hidden p-8 md:p-12">
-            <p className="label-mono">Design principle</p>
+            <p className="label-mono">What we build</p>
             <h3 className="font-display mt-4 text-3xl font-bold leading-tight tracking-tight md:text-5xl">
-              <span className="metal-text">Core from Earth.</span>{" "}
-              <span className="ember-text">Everything else from the Moon.</span>
+              <span className="metal-text">Launch the core.</span>{" "}
+              <span className="ember-text">Build the rest there.</span>
             </h3>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted">
+              The 28 kg uranium core launches from Earth. Everything around it
+              — the four classes of fission infrastructure below — we sinter
+              on the surface from lunar regolith.
+            </p>
             <div className="mt-10 grid gap-10 md:grid-cols-2">
               <div>
                 <div className="flex items-baseline justify-between">
@@ -270,7 +275,7 @@ export default function Technology() {
                     From Earth
                   </h4>
                   <span className="font-display text-2xl font-bold text-ember-bright">
-                    5%
+                    28 kg
                   </span>
                 </div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
@@ -278,7 +283,7 @@ export default function Technology() {
                 </div>
                 <ul className="mt-5 space-y-2.5">
                   {[
-                    "Sealed fission core & fuel",
+                    "Sealed uranium core — KRUSTY-class",
                     "Control avionics & instrumentation",
                     "Precision optics & sensor seeds",
                   ].map((item) => (
@@ -295,7 +300,7 @@ export default function Technology() {
                     From the Moon
                   </h4>
                   <span className="font-display text-2xl font-bold text-laser">
-                    95%
+                    1,000s kg
                   </span>
                 </div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
@@ -303,10 +308,10 @@ export default function Technology() {
                 </div>
                 <ul className="mt-5 space-y-2.5">
                   {[
-                    "Radiation shielding — sintered regolith & iron",
-                    "Containment & structural frames — titanium",
-                    "Heat radiators — aluminum",
-                    "Foundations, anchors & roads — cast regolith",
+                    "Radiation shielding — sintered from iron-rich regolith",
+                    "Containment vessels — titanium-aluminum alloys, in situ",
+                    "Stirling engine housings — KRUSTY-class thermal cycle",
+                    "Heat management — radiators, exchangers, thermal pathways",
                   ].map((item) => (
                     <li key={item} className="flex gap-3 text-sm text-muted">
                       <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-laser" />
@@ -317,7 +322,8 @@ export default function Technology() {
               </div>
             </div>
             <p className="mt-10 border-l-2 border-ember pl-4 text-sm italic text-steel">
-              The only part we launch is the part physics says we must.
+              We don&apos;t ship the housing. We sinter it from the dust under
+              the lander.
             </p>
           </div>
         </Reveal>
