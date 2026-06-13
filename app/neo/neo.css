@@ -129,3 +129,38 @@
   padding: 1.5rem;
 }
 
+/* ---------- wireframe motion (slight) ---------- */
+
+@keyframes neo-beam-dash {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+@keyframes neo-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.neo-beam {
+  animation: neo-beam-dash 0.9s linear infinite;
+}
+.neo-melt {
+  animation: neo-pulse 1.6s ease-in-out infinite;
+}
+.neo-emit {
+  animation: neo-pulse 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-beam,
+  .neo-melt,
+  .neo-emit {
+    animation: none;
+  }
+}
+
