@@ -145,6 +145,15 @@
   --neo-ink: #e4e2db;
 }
 
+/* cream glow behind the photographic logo so the moon reads on black */
+.neo-logo-glow {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(228, 226, 219, 0.22),
+    transparent 70%
+  );
+}
+
 /* ---------- wireframe motion (slight) ---------- */
 
 @keyframes neo-beam-dash {

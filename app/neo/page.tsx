@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Chevrons, PixelFlag, PixelMoon, StripedMoon } from "@/components/neo/marks";
+import { Chevrons, PixelFlag, PixelMoon } from "@/components/neo/marks";
 import { TerraformDiagram } from "@/components/neo/diagrams";
 import { UnitWireframe } from "@/components/neo/wireframe";
 import "./neo.css";
@@ -69,8 +69,16 @@ export default function NeoPage() {
                 [V.01]
               </Link>
             </div>
-            <a href="#top" className="flex items-center gap-3">
-              <StripedMoon size={24} />
+            <a href="#top" className="flex items-center gap-2.5">
+              <span className="neo-logo-glow flex items-center px-1">
+                <Image
+                  src="/brand/logo-mark.png"
+                  alt=""
+                  width={820}
+                  height={350}
+                  className="h-7 w-auto"
+                />
+              </span>
               <span className="neo-mono text-[13px] font-semibold tracking-[0.18em] text-[var(--neo-paper)]">
                 LUNARFORGE <span className="align-super text-[8px]">®</span>
               </span>
@@ -553,19 +561,27 @@ export default function NeoPage() {
 
       {/* ====== footer ====== */}
       <footer className={`neo-dark border-t-2 ${ink}`}>
-        <div className="mx-auto grid w-full max-w-[1140px] gap-8 px-6 py-10 md:grid-cols-3">
-          <div className="flex items-start gap-3">
-            <StripedMoon size={22} />
-            <div>
-              <p className="neo-mono text-[12px] font-semibold tracking-[0.18em]">
-                LUNARFORGE <span className="align-super text-[8px]">®</span>
-              </p>
-              <p className="neo-mono mt-2 text-[10px] leading-relaxed text-[var(--neo-gray)]">
-                BUILD THE REACTOR HOUSING
-                <br />
-                ON THE MOON.
-              </p>
-            </div>
+        <div className="flex justify-center px-6 pb-10 pt-14">
+          <span className="neo-logo-glow inline-flex p-6">
+            <Image
+              src="/brand/logo-full.png"
+              alt="LunarForge"
+              width={760}
+              height={514}
+              className="h-auto w-[230px] md:w-[300px]"
+            />
+          </span>
+        </div>
+        <div className="mx-auto grid w-full max-w-[1140px] gap-8 border-t border-[var(--neo-ink)] px-6 py-10 md:grid-cols-3">
+          <div>
+            <p className="neo-mono text-[12px] font-semibold tracking-[0.18em]">
+              LUNARFORGE <span className="align-super text-[8px]">®</span>
+            </p>
+            <p className="neo-mono mt-2 text-[10px] leading-relaxed text-[var(--neo-gray)]">
+              BUILD THE REACTOR HOUSING
+              <br />
+              ON THE MOON.
+            </p>
           </div>
           <div className="neo-mono space-y-1 text-[10px] text-[var(--neo-gray)]">
             <p>NUCLEAR ENERGY SYSTEMS</p>
