@@ -302,17 +302,28 @@
   }
 }
 
-/* hovering drones */
+/* hovering drones — stepped mechanical jitter (deliberately not smooth) */
 .neo-hover {
-  animation: neo-hover 3s ease-in-out infinite;
+  animation: neo-hover 2.1s steps(1, end) infinite;
 }
 @keyframes neo-hover {
-  0%,
-  100% {
+  0% {
     transform: translateY(0);
   }
-  50% {
+  20% {
+    transform: translateY(-3px);
+  }
+  40% {
+    transform: translateY(-1px);
+  }
+  60% {
     transform: translateY(-4px);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
   }
 }
 
