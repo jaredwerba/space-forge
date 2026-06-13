@@ -1,6 +1,82 @@
 /* Pixel-built marks for the NEO-INDUSTRIAL system.
    Everything is rects on a grid — no curves, no rounding. */
 
+import { mulberry32 } from "@/lib/prng";
+
+/* --- pixelated moon: a shaded sphere quantized into square cells, with
+       craters, a vertical forge laser, and a pixel impact + ground splash --- */
+export function PixelMoon({ className = "" }: { className?: string }) {
+  const C = 12; // cell size in viewBox units
+  const R = 13; // moon radius in cells
+  const rnd = mulberry32(8);
+  const craters = [
+    { x: -6, y: -4, r: 3.2 },
+    { x: 4, y: -7, r: 2.1 },
+    { x: 5, y: 3, r: 2.7 },
+    { x: -3, y: 6, r: 1.9 },
+    { x: -9, y: 2, r: 1.6 },
+    { x: 2, y: 0, r: 1.3 },
+  ];
+  const L = { x: -0.55, y: -0.55, z: 0.63 };
+  const tones = ["#1b1b17", "#4f4e47", "#8d8b82", "#c2c0b6"]; // dark→light
+  const moon: React.ReactNode[] = [];
+  for (let j = -R; j <= R; j++) {
+    for (let i = -R; i <= R; i++) {
+      const d2 = i * i + j * j;
+      if (d2 > (R - 0.25) * (R - 0.25)) continue;
+      const nz = Math.sqrt(Math.max(0, 1 - d2 / (R * R)));
+      let b = (i / R) * L.x + (j / R) * L.y + nz * L.z;
+      for (const c of craters) {
+        const cd = Math.hypot(i - c.x, j - c.y);
+        if (cd < c.r) b += cd < c.r * 0.55 ? -0.5 : 0.28;
+      }
+      b += (rnd() - 0.5) * 0.1;
+      const t = b > 0.66 ? 3 : b > 0.34 ? 2 : b > 0.05 ? 1 : 0;
+      moon.push(
+        <rect key={`m${i}_${j}`} x={i * C} y={j * C} width={C} height={C} fill={tones[t]} />
+      );
+    }
+  }
+  // ground splash beneath the moon
+  const ground: React.ReactNode[] = [];
+  for (let j = R; j <= R + 1; j++) {
+    for (let i = -8; i <= 8; i++) {
+      if (rnd() > 0.82 - (Math.abs(i) / 8) * 0.5 - (j - R) * 0.18) continue;
+      ground.push(
+        <rect key={`g${i}_${j}`} x={i * C} y={j * C} width={C} height={C} fill="#1b1b17" />
+      );
+    }
+  }
+  // forge laser column (i = 0), fading above the moon
+  const laser: React.ReactNode[] = [];
+  for (let j = -(R + 3); j <= R - 1; j++) {
+    const above = j < -R;
+    if (above && j % 2 === 0) continue;
+    laser.push(
+      <rect key={`l${j}`} x={-C / 2} y={j * C} width={C} height={C} fill={above ? "#ff8a3d" : "#ff5a05"} />
+    );
+  }
+  const burst: [number, number][] = [
+    [0, R - 1], [-1, R - 1], [1, R - 1], [0, R - 2], [-1, R - 2],
+    [1, R - 2], [-2, R - 1], [2, R - 1], [0, R - 3],
+  ];
+  return (
+    <svg
+      viewBox={`${-(R + 1) * C} ${-(R + 3.5) * C} ${(2 * R + 2) * C} ${(2 * R + 6) * C}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      className={className}
+    >
+      {moon}
+      {ground}
+      {laser}
+      {burst.map(([i, j]) => (
+        <rect key={`b${i}_${j}`} x={i * C} y={j * C} width={C} height={C} fill="#ff7a1e" />
+      ))}
+    </svg>
+  );
+}
+
 function PixelGlyph({
   rows,
   cell = 4,

@@ -129,6 +129,22 @@
   padding: 1.5rem;
 }
 
+/* full-bleed band that escapes the max-width container */
+.neo-bleed {
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+/* inverted (black) sections — remap tokens so existing utilities flip.
+   bg is a literal so remapping --neo-ink doesn't recolor it. */
+.neo-dark {
+  background: #161613;
+  color: var(--neo-paper);
+  --neo-gray: #a3a199;
+  --neo-ink: #e4e2db;
+}
+
 /* ---------- wireframe motion (slight) ---------- */
 
 @keyframes neo-beam-dash {

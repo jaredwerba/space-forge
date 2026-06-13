@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Chevrons, PixelFlag, StripedMoon } from "@/components/neo/marks";
+import { Chevrons, PixelFlag, PixelMoon, StripedMoon } from "@/components/neo/marks";
 import { TerraformDiagram } from "@/components/neo/diagrams";
 import { UnitWireframe } from "@/components/neo/wireframe";
 import "./neo.css";
@@ -42,28 +42,39 @@ export default function NeoPage() {
   return (
     <div className="neo-root min-h-screen">
       {/* ====== header ====== */}
-      <header className={`sticky top-0 z-50 border-b bg-[var(--neo-paper)] ${ink}`}>
+      <header className="neo-dark sticky top-0 z-50 border-b border-[var(--neo-ink)]">
         <div className="mx-auto flex w-full max-w-[1140px] items-center justify-between gap-6 px-6 py-3.5">
-          <a href="#top" className="flex items-center gap-3">
-            <StripedMoon size={24} />
-            <span className="neo-mono text-[13px] font-semibold tracking-[0.18em]">
-              LUNARFORGE <span className="align-super text-[8px]">®</span>
+          <div className="flex items-center gap-7">
+            <nav className="neo-mono hidden gap-7 text-[11px] text-[var(--neo-gray)] md:flex">
+              {navLinks.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="transition-colors hover:text-[var(--neo-paper)]"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </nav>
+            <span className="neo-mono flex items-center gap-2 text-[10px] text-[var(--neo-gray)] md:hidden">
+              <PixelFlag width={22} /> U.S.A.
             </span>
-          </a>
-          <nav className="neo-mono hidden gap-7 text-[11px] text-[var(--neo-gray)] md:flex">
-            {navLinks.map((l) => (
-              <a key={l.href} href={l.href} className="transition-colors hover:text-[var(--neo-ink)]">
-                {l.label}
-              </a>
-            ))}
-          </nav>
-          <div className="neo-mono flex items-center gap-4 text-[10px]">
-            <span className="hidden items-center gap-2 sm:flex">
-              <PixelFlag width={24} /> U.S.A.
-            </span>
-            <Link href="/" className="neo-link px-1 text-[var(--neo-gray)]">
-              [V.01]
-            </Link>
+          </div>
+          <div className="flex items-center gap-5">
+            <div className="neo-mono hidden items-center gap-4 text-[10px] text-[var(--neo-gray)] md:flex">
+              <span className="flex items-center gap-2">
+                <PixelFlag width={22} /> U.S.A.
+              </span>
+              <Link href="/" className="neo-link px-1">
+                [V.01]
+              </Link>
+            </div>
+            <a href="#top" className="flex items-center gap-3">
+              <StripedMoon size={24} />
+              <span className="neo-mono text-[13px] font-semibold tracking-[0.18em] text-[var(--neo-paper)]">
+                LUNARFORGE <span className="align-super text-[8px]">®</span>
+              </span>
+            </a>
           </div>
         </div>
       </header>
@@ -74,15 +85,9 @@ export default function NeoPage() {
           <p className="neo-mono text-[11px] text-[var(--neo-gray)]">
             LUNAR SURFACE INFRASTRUCTURE — FUELING THE FUTURE
           </p>
-          <Image
-            src="/brand/logo.png"
-            alt="LunarForge"
-            width={820}
-            height={350}
-            priority
-            sizes="(max-width: 768px) 300px, 460px"
-            className="mt-6 h-auto w-[300px] md:w-[460px]"
-          />
+          <div className="mt-8 w-[210px] md:w-[270px]">
+            <PixelMoon className="w-full" />
+          </div>
           <h1 className="neo-display mt-6 max-w-4xl text-[clamp(2.6rem,7vw,5.5rem)]">
             Build the reactor housing{" "}
             <span className="text-[var(--neo-orange)]">on the Moon.</span>
@@ -127,25 +132,27 @@ export default function NeoPage() {
           ))}
         </section>
 
-        {/* establishing render */}
-        <figure className={`mt-12 border ${ink}`}>
-          <div className={`neo-mono flex justify-between border-b ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
-            <span>REFERENCE SITE / AUTONOMOUS ASSEMBLY</span>
-            <span className="hidden sm:inline">MARE TRANQUILLITATIS</span>
-          </div>
-          <Image
-            src="/brand/lunar-site.jpg"
-            alt="Autonomous reactor housing being assembled on the lunar surface, with a lander descending and Earth on the horizon"
-            width={1600}
-            height={800}
-            className="block w-full"
-            sizes="(max-width: 1140px) 100vw, 1140px"
-          />
-          <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
-            <span>CORE LANDED FROM EARTH</span>
-            <span>HOUSING SINTERED FROM REGOLITH</span>
-          </figcaption>
-        </figure>
+        {/* establishing render — black band */}
+        <section className="neo-bleed neo-dark mt-14">
+          <figure className="mx-auto max-w-[1280px] px-6 py-12">
+            <div className="neo-mono mb-4 flex justify-between text-[10px] text-[var(--neo-gray)]">
+              <span>REFERENCE SITE / AUTONOMOUS ASSEMBLY</span>
+              <span className="hidden sm:inline">MARE TRANQUILLITATIS</span>
+            </div>
+            <Image
+              src="/brand/lunar-site.jpg"
+              alt="Autonomous reactor housing being assembled on the lunar surface, with a lander descending and Earth on the horizon"
+              width={1600}
+              height={800}
+              className="block w-full"
+              sizes="(max-width: 1280px) 100vw, 1232px"
+            />
+            <figcaption className="neo-mono mt-4 flex justify-between text-[10px] text-[var(--neo-gray)]">
+              <span>CORE LANDED FROM EARTH</span>
+              <span>HOUSING SINTERED FROM REGOLITH</span>
+            </figcaption>
+          </figure>
+        </section>
 
         {/* ====== 01 problem ====== */}
         <section id="problem" className="scroll-mt-20 pt-24">
@@ -193,39 +200,42 @@ export default function NeoPage() {
         </section>
 
         {/* ====== 02 insight ====== */}
-        <section className="pt-24">
-          <SectionHead num="02" label="The Insight" />
-          <h2 className="neo-display mt-6 max-w-4xl text-4xl md:text-6xl">
-            Launch what you have to launch.{" "}
-            <span className="text-[var(--neo-orange)]">
-              Build everything else where you need it.
-            </span>
-          </h2>
-          <div className="mt-10 grid items-center gap-8 md:grid-cols-2">
-            <div>
-              <p className="max-w-xl text-[15px] leading-relaxed text-[var(--neo-gray)]">
-                The Moon&apos;s regolith is 40%+ iron, titanium, and aluminum
-                by mass — the exact metals fission infrastructure requires.
-              </p>
-              <p className="neo-display mt-8 border-l-4 border-[var(--neo-orange)] pl-5 text-xl leading-snug md:text-2xl">
-                We don&apos;t ship the housing. We sinter it from the dust
-                under the lander.
-              </p>
+        {/* ====== 02 insight — black band ====== */}
+        <section className="neo-bleed neo-dark mt-24">
+          <div className="mx-auto max-w-[1140px] px-6 py-20">
+            <SectionHead num="02" label="The Insight" />
+            <h2 className="neo-display mt-6 max-w-4xl text-4xl md:text-6xl">
+              Launch what you have to launch.{" "}
+              <span className="text-[var(--neo-orange)]">
+                Build everything else where you need it.
+              </span>
+            </h2>
+            <div className="mt-10 grid items-center gap-8 md:grid-cols-2">
+              <div>
+                <p className="max-w-xl text-[15px] leading-relaxed text-[var(--neo-gray)]">
+                  The Moon&apos;s regolith is 40%+ iron, titanium, and aluminum
+                  by mass — the exact metals fission infrastructure requires.
+                </p>
+                <p className="neo-display mt-8 border-l-4 border-[var(--neo-orange)] pl-5 text-xl leading-snug md:text-2xl">
+                  We don&apos;t ship the housing. We sinter it from the dust
+                  under the lander.
+                </p>
+              </div>
+              <figure className={`border ${ink}`}>
+                <Image
+                  src="/brand/regolith.jpg"
+                  alt="Close-up of lunar mare regolith — fine dark dust and angular aggregate"
+                  width={1200}
+                  height={805}
+                  className="block w-full"
+                  sizes="(max-width: 768px) 100vw, 560px"
+                />
+                <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
+                  <span>FEEDSTOCK — MARE REGOLITH</span>
+                  <span>40%+ FE·TI·AL</span>
+                </figcaption>
+              </figure>
             </div>
-            <figure className={`border ${ink}`}>
-              <Image
-                src="/brand/regolith.jpg"
-                alt="Close-up of lunar mare regolith — fine dark dust and angular aggregate"
-                width={1200}
-                height={805}
-                className="block w-full"
-                sizes="(max-width: 768px) 100vw, 560px"
-              />
-              <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
-                <span>FEEDSTOCK — MARE REGOLITH</span>
-                <span>40%+ FE·TI·AL</span>
-              </figcaption>
-            </figure>
           </div>
         </section>
 
@@ -542,7 +552,7 @@ export default function NeoPage() {
       </div>
 
       {/* ====== footer ====== */}
-      <footer className={`border-t-2 ${ink}`}>
+      <footer className={`neo-dark border-t-2 ${ink}`}>
         <div className="mx-auto grid w-full max-w-[1140px] gap-8 px-6 py-10 md:grid-cols-3">
           <div className="flex items-start gap-3">
             <StripedMoon size={22} />
