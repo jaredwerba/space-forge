@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Chevrons, PixelFlag, StripedMoon } from "@/components/neo/marks";
 import { TerraformDiagram } from "@/components/neo/diagrams";
@@ -73,8 +74,16 @@ export default function NeoPage() {
           <p className="neo-mono text-[11px] text-[var(--neo-gray)]">
             LUNAR SURFACE INFRASTRUCTURE — FUELING THE FUTURE
           </p>
-          <StripedMoon size={190} className="mt-12 text-[var(--neo-ink)]" />
-          <h1 className="neo-display mt-12 max-w-4xl text-[clamp(2.6rem,7vw,5.5rem)]">
+          <Image
+            src="/brand/logo.png"
+            alt="LunarForge"
+            width={820}
+            height={350}
+            priority
+            sizes="(max-width: 768px) 300px, 460px"
+            className="mt-6 h-auto w-[300px] md:w-[460px]"
+          />
+          <h1 className="neo-display mt-6 max-w-4xl text-[clamp(2.6rem,7vw,5.5rem)]">
             Build the reactor housing{" "}
             <span className="text-[var(--neo-orange)]">on the Moon.</span>
           </h1>
@@ -90,7 +99,7 @@ export default function NeoPage() {
             <a href="#problem" className="neo-btn neo-btn--solid">
               Read the mission
             </a>
-            <a href="mailto:hello@lunarforge.moon" className="neo-btn">
+            <a href="mailto:hello@lunarforgespace.com" className="neo-btn">
               Follow the build →
             </a>
           </div>
@@ -117,6 +126,26 @@ export default function NeoPage() {
             </div>
           ))}
         </section>
+
+        {/* establishing render */}
+        <figure className={`mt-12 border ${ink}`}>
+          <div className={`neo-mono flex justify-between border-b ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
+            <span>REFERENCE SITE / AUTONOMOUS ASSEMBLY</span>
+            <span className="hidden sm:inline">MARE TRANQUILLITATIS</span>
+          </div>
+          <Image
+            src="/brand/lunar-site.jpg"
+            alt="Autonomous reactor housing being assembled on the lunar surface, with a lander descending and Earth on the horizon"
+            width={1600}
+            height={800}
+            className="block w-full"
+            sizes="(max-width: 1140px) 100vw, 1140px"
+          />
+          <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
+            <span>CORE LANDED FROM EARTH</span>
+            <span>HOUSING SINTERED FROM REGOLITH</span>
+          </figcaption>
+        </figure>
 
         {/* ====== 01 problem ====== */}
         <section id="problem" className="scroll-mt-20 pt-24">
@@ -172,14 +201,32 @@ export default function NeoPage() {
               Build everything else where you need it.
             </span>
           </h2>
-          <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--neo-gray)]">
-            The Moon&apos;s regolith is 40%+ iron, titanium, and aluminum by
-            mass — the exact metals fission infrastructure requires.
-          </p>
-          <p className="neo-display mt-10 max-w-2xl border-l-4 border-[var(--neo-orange)] pl-5 text-xl leading-snug md:text-2xl">
-            We don&apos;t ship the housing. We sinter it from the dust under
-            the lander.
-          </p>
+          <div className="mt-10 grid items-center gap-8 md:grid-cols-2">
+            <div>
+              <p className="max-w-xl text-[15px] leading-relaxed text-[var(--neo-gray)]">
+                The Moon&apos;s regolith is 40%+ iron, titanium, and aluminum
+                by mass — the exact metals fission infrastructure requires.
+              </p>
+              <p className="neo-display mt-8 border-l-4 border-[var(--neo-orange)] pl-5 text-xl leading-snug md:text-2xl">
+                We don&apos;t ship the housing. We sinter it from the dust
+                under the lander.
+              </p>
+            </div>
+            <figure className={`border ${ink}`}>
+              <Image
+                src="/brand/regolith.jpg"
+                alt="Close-up of lunar mare regolith — fine dark dust and angular aggregate"
+                width={1200}
+                height={805}
+                className="block w-full"
+                sizes="(max-width: 768px) 100vw, 560px"
+              />
+              <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
+                <span>FEEDSTOCK — MARE REGOLITH</span>
+                <span>40%+ FE·TI·AL</span>
+              </figcaption>
+            </figure>
+          </div>
         </section>
 
         {/* ====== 03 system ====== */}
@@ -452,10 +499,10 @@ export default function NeoPage() {
           </div>
         </section>
 
-        {/* ====== ask ====== */}
+        {/* ====== contact ====== */}
         <section className={`mt-24 border-t-2 ${ink} pb-10 pt-20 text-center`}>
           <p className="neo-mono text-[11px] text-[var(--neo-gray)]">
-            THE ASK
+            GET IN TOUCH
           </p>
           <h2 className="neo-display mx-auto mt-5 max-w-3xl text-4xl md:text-6xl">
             Launch the core.{" "}
@@ -464,20 +511,20 @@ export default function NeoPage() {
             </span>
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-[var(--neo-gray)]">
-            Pre-seed round opening to a small group of frontier-tech investors
-            and strategic partners across space, nuclear, and defense. First
-            lunar surface demonstration targeted for 2027.
+            Building the surface infrastructure that makes lunar fission
+            possible. For partnership and technical inquiries, reach the team
+            directly.
           </p>
           <a
-            href="mailto:hello@lunarforge.moon"
+            href="mailto:hello@lunarforgespace.com"
             className="neo-btn neo-btn--solid mt-9"
           >
-            Get the deck →
+            hello@lunarforgespace.com →
           </a>
           <div className="neo-mono mx-auto mt-12 flex max-w-2xl flex-wrap justify-center gap-x-10 gap-y-2 text-[10px] text-[var(--neo-gray)]">
-            <span>ROUND: PRE-SEED</span>
-            <span>STAGE: TECHNICAL VALIDATION</span>
-            <span>NEXT STEP: DEEP DIVE UNDER NDA</span>
+            <span>STATUS: TECHNICAL VALIDATION</span>
+            <span>SECTOR: SPACE · NUCLEAR</span>
+            <span>FIRST DEMO: 2027</span>
           </div>
         </section>
       </main>
@@ -518,8 +565,8 @@ export default function NeoPage() {
           </div>
           <div className="neo-mono space-y-2 text-[10px] text-[var(--neo-gray)] md:text-right">
             <p>
-              <a href="mailto:hello@lunarforge.moon" className="neo-link px-1">
-                HELLO@LUNARFORGE.MOON
+              <a href="mailto:hello@lunarforgespace.com" className="neo-link px-1">
+                HELLO@LUNARFORGESPACE.COM
               </a>
             </p>
             <p>

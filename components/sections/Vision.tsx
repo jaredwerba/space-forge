@@ -221,7 +221,7 @@ export default function Vision() {
                 <span className="ember-text">We build the rest.</span>
               </span>
             </p>
-            <a href="mailto:hello@lunarforge.moon" className="btn btn-primary mt-2">
+            <a href="mailto:hello@lunarforgespace.com" className="btn btn-primary mt-2">
               Follow the Build
             </a>
           </div>

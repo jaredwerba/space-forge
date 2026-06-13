@@ -46,10 +46,10 @@ export default function Footer() {
             Contact
           </p>
           <a
-            href="mailto:hello@lunarforge.moon"
+            href="mailto:hello@lunarforgespace.com"
             className="text-sm text-laser transition-colors hover:text-white"
           >
-            hello@lunarforge.moon
+            hello@lunarforgespace.com
           </a>
           <p className="mt-6 text-xs leading-relaxed text-steel-dim">
             LunarForge is a theoretical concept company. All specifications,
