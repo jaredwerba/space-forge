@@ -69,16 +69,7 @@ export default function NeoPage() {
                 [V.01]
               </Link>
             </div>
-            <a href="#top" className="flex items-center gap-2.5">
-              <span className="neo-logo-glow flex items-center px-1">
-                <Image
-                  src="/brand/logo-mark.png"
-                  alt=""
-                  width={820}
-                  height={350}
-                  className="h-7 w-auto"
-                />
-              </span>
+            <a href="#top" className="flex items-center">
               <span className="neo-mono text-[13px] font-semibold tracking-[0.18em] text-[var(--neo-paper)]">
                 LUNARFORGE <span className="align-super text-[8px]">®</span>
               </span>

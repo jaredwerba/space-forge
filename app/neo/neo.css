@@ -14,7 +14,7 @@
 
   background: var(--neo-paper);
   color: var(--neo-ink);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-cmono), ui-monospace, monospace;
   position: relative;
   overflow-x: clip;
 }
@@ -47,9 +47,10 @@
 /* ---------- type ---------- */
 
 .neo-display {
-  font-weight: 900;
-  letter-spacing: -0.025em;
-  line-height: 0.97;
+  font-family: var(--font-pixelify), ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
   text-transform: uppercase;
 }
 
@@ -60,10 +61,12 @@
 }
 
 .neo-ghost {
-  font-weight: 900;
-  letter-spacing: -0.04em;
+  font-family: var(--font-pixelify), ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
-  color: rgba(27, 27, 23, 0.07);
+  text-transform: uppercase;
+  color: rgba(27, 27, 23, 0.08);
   user-select: none;
   white-space: nowrap;
 }

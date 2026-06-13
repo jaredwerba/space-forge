@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Fragment_Mono, IBM_Plex_Mono, Inter, Space_Grotesk } from "next/font/google";
+import {
+  IBM_Plex_Mono,
+  Inter,
+  Pixelify_Sans,
+  Space_Grotesk,
+  Space_Mono,
+} from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,11 +24,17 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
-// closest open match to brasshands' Construct Mono — used on /neo
-const fragmentMono = Fragment_Mono({
+// /neo type system: Pixelify Sans headings + Space Mono pairing
+const pixelify = Pixelify_Sans({
+  variable: "--font-pixelify",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const spaceMono = Space_Mono({
   variable: "--font-cmono",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -50,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${fragmentMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${pixelify.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>
