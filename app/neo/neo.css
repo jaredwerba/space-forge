@@ -47,10 +47,10 @@
 /* ---------- type ---------- */
 
 .neo-display {
-  font-family: var(--font-pixelify), ui-monospace, monospace;
-  font-weight: 700;
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-weight: 400;
   letter-spacing: 0.01em;
-  line-height: 1.02;
+  line-height: 1.05;
   text-transform: uppercase;
 }
 
@@ -61,8 +61,8 @@
 }
 
 .neo-ghost {
-  font-family: var(--font-pixelify), ui-monospace, monospace;
-  font-weight: 700;
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-weight: 400;
   letter-spacing: 0.01em;
   line-height: 1;
   text-transform: uppercase;

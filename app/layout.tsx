@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Mono,
   Inter,
-  Pixelify_Sans,
   Space_Grotesk,
   Space_Mono,
+  Tiny5,
 } from "next/font/google";
 import "./globals.css";
 
@@ -25,10 +25,10 @@ const plexMono = IBM_Plex_Mono({
 });
 
 // /neo type system: Pixelify Sans headings + Space Mono pairing
-const pixelify = Pixelify_Sans({
-  variable: "--font-pixelify",
+const tiny5 = Tiny5({
+  variable: "--font-pixel",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400",
 });
 
 const spaceMono = Space_Mono({
@@ -62,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${pixelify.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${tiny5.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>
