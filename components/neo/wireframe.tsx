@@ -35,7 +35,7 @@ function Wheel({ cx, cy }: { cx: number; cy: number }) {
     );
   });
   return (
-    <g>
+    <g className="neo-wheel">
       <circle cx={cx} cy={cy} r={42} />
       <circle cx={cx} cy={cy} r={33} />
       <circle cx={cx} cy={cy} r={8} />

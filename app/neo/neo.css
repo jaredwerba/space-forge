@@ -220,10 +220,55 @@
   animation: neo-pulse 2.6s ease-in-out infinite;
 }
 
+/* rover wheels — slow clockwise roll */
+.neo-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: neo-roll 8s linear infinite;
+}
+@keyframes neo-roll {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* drone lasers — hard pixelated zap flicker, no glow */
+.neo-zap {
+  animation: neo-zap 1.3s steps(1, end) infinite;
+}
+@keyframes neo-zap {
+  0% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 0.12;
+  }
+  20% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 0.1;
+  }
+  90% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .neo-beam,
   .neo-melt,
-  .neo-emit {
+  .neo-emit,
+  .neo-wheel,
+  .neo-zap {
     animation: none;
   }
 }

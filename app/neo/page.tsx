@@ -286,21 +286,16 @@ export default function NeoPage() {
           <figure className={`mt-14 border ${ink}`}>
             <div className={`neo-mono flex justify-between border-b ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
               <span>MS-01 / MOBILE SINTERING UNIT</span>
-              <span className="text-[var(--neo-orange)] sm:hidden">SWIPE →</span>
               <span className="hidden sm:inline">SERIAL NO. 001</span>
             </div>
-            <div className="overflow-x-auto">
-              <UnitWireframe className="w-full min-w-[760px] p-4 md:min-w-0 md:p-6" />
-            </div>
+            <UnitWireframe className="w-full p-3 sm:p-5 md:p-6" />
             <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
               <span>FIG. 01 — SIDE ELEVATION</span>
               <span className="hidden sm:inline">SCALE 1:40 — ALL DIMENSIONS NOMINAL</span>
             </figcaption>
           </figure>
           <figure className={`mt-8 border ${ink}`}>
-            <div className="overflow-x-auto">
-              <TerraformDiagram className="w-full min-w-[560px] p-4 md:min-w-0 md:p-6" />
-            </div>
+            <TerraformDiagram className="w-full p-3 sm:p-5 md:p-6" />
             <figcaption className={`neo-mono flex justify-between border-t ${ink} px-4 py-3 text-[10px] text-[var(--neo-gray)]`}>
               <span>FIG. 02 — SINTERING SITE, SECTION A-A</span>
               <span className="hidden sm:inline">AUTONOMOUS · CREWLESS · CONTINUOUS</span>

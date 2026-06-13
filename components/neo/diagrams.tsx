@@ -210,17 +210,17 @@ export function TerraformDiagram({ className = "" }: { className?: string }) {
         <MiniDrone key={k} x={x} y={y} />
       ))}
 
-      {/* laser paths */}
+      {/* laser paths — pixelated zap */}
       <g stroke="var(--neo-orange)" strokeWidth="2.5">
-        <line x1={drones[0][0]} y1={drones[0][1] + 12} x2={p1[0]} y2={p1[1]} />
-        <line x1={drones[1][0]} y1={drones[1][1] + 12} x2={p2[0]} y2={p2[1]} />
-        <line x1={drones[2][0]} y1={drones[2][1] + 12} x2="436" y2="290" />
+        <line className="neo-zap" x1={drones[0][0]} y1={drones[0][1] + 12} x2={p1[0]} y2={p1[1]} />
+        <line className="neo-zap" style={{ animationDelay: "-0.45s" }} x1={drones[1][0]} y1={drones[1][1] + 12} x2={p2[0]} y2={p2[1]} />
+        <line className="neo-zap" style={{ animationDelay: "-0.9s" }} x1={drones[2][0]} y1={drones[2][1] + 12} x2="436" y2="290" />
       </g>
-      {/* impact sparks */}
+      {/* impact sparks — flash with their beam */}
       <g fill="var(--neo-orange)">
-        <rect x={p1[0] - 3} y={p1[1] - 9} width="6" height="6" />
-        <rect x={p2[0] + 1} y={p2[1] - 10} width="5" height="5" />
-        <rect x="432" y="280" width="6" height="6" />
+        <rect className="neo-zap" x={p1[0] - 3} y={p1[1] - 9} width="6" height="6" />
+        <rect className="neo-zap" style={{ animationDelay: "-0.45s" }} x={p2[0] + 1} y={p2[1] - 10} width="5" height="5" />
+        <rect className="neo-zap" style={{ animationDelay: "-0.9s" }} x="432" y="280" width="6" height="6" />
       </g>
 
       {/* regolith intake pile */}
