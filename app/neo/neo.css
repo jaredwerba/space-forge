@@ -97,14 +97,50 @@
   background: var(--neo-ink);
   color: var(--neo-paper);
 }
+/* primary button — brasshands style: charcoal + diagonal hatch,
+   corner-bracket crop marks, spaced orange mono text */
 .neo-btn--solid {
-  background: var(--neo-ink);
-  color: var(--neo-paper);
+  --btn-corner: #b3b0a4;
+  position: relative;
+  border-color: transparent;
+  padding: 0.9rem 2.1rem;
+  letter-spacing: 0.2em;
+  color: var(--neo-orange);
+  background-color: #242424;
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    linear-gradient(var(--btn-corner), var(--btn-corner)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 120, 30, 0.22) 0,
+      rgba(255, 120, 30, 0.22) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+  background-position:
+    left 7px top 7px, left 7px top 7px,
+    right 7px top 7px, right 7px top 7px,
+    left 7px bottom 7px, left 7px bottom 7px,
+    right 7px bottom 7px, right 7px bottom 7px,
+    center;
+  background-size:
+    16px 2px, 2px 16px,
+    16px 2px, 2px 16px,
+    16px 2px, 2px 16px,
+    16px 2px, 2px 16px,
+    100% 100%;
 }
 .neo-btn--solid:hover {
-  background: var(--neo-orange);
-  border-color: var(--neo-orange);
-  color: var(--neo-ink);
+  --btn-corner: var(--neo-orange);
+  color: #ffd9a0;
+  background-color: #2b2b2b;
 }
 
 .neo-link {
