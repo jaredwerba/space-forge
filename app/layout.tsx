@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Inter, Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, Inter, Silkscreen, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,6 +16,12 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+const silkscreen = Silkscreen({
+  variable: "--font-pixel",
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -43,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${silkscreen.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>

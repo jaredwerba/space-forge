@@ -1,0 +1,243 @@
+/* ============================================================
+   NEO-INDUSTRIAL design system — scoped under .neo-root
+   Reference: brasshands.com — Inter display, mono labels,
+   charcoal #242424 / orange #FF781E / steel #ADB3B7, paper
+   plates, hard edges, print grain. No rounded corners, ever.
+   ============================================================ */
+
+.neo-root {
+  --neo-ink: #181815;
+  --neo-charcoal: #242424;
+  --neo-paper: #e9e7df;
+  --neo-paper-dim: #d9d6ca;
+  --neo-mint: #dde6dd;
+  --neo-yellow: #f0c808;
+  --neo-orange: #ff781e;
+  --neo-steel: #adb3b7;
+
+  background: var(--neo-charcoal);
+  color: var(--neo-ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  position: relative;
+  overflow-x: clip;
+}
+
+/* the rule: nothing is soft, nothing is round */
+.neo-root *,
+.neo-root *::before,
+.neo-root *::after {
+  border-radius: 0 !important;
+}
+
+.neo-root ::selection {
+  background: var(--neo-orange);
+  color: var(--neo-ink);
+}
+
+/* ---------- type ---------- */
+
+.neo-display {
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.93;
+}
+
+.neo-mono {
+  font-family: var(--font-plex), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.neo-pixel {
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.neo-bar {
+  display: inline-block;
+  background: var(--neo-ink);
+  color: var(--neo-paper);
+  padding: 0.18em 0.55em;
+}
+
+.neo-bar--orange {
+  background: var(--neo-orange);
+  color: var(--neo-ink);
+}
+
+/* striped numerals, like the reference "01" */
+.neo-striped-num {
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.78;
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--neo-ink) 0,
+    var(--neo-ink) 0.082em,
+    transparent 0.082em,
+    transparent 0.143em
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------- surfaces ---------- */
+
+.neo-plate {
+  position: relative;
+  background: var(--neo-paper);
+  border: 2px solid var(--neo-ink);
+  color: var(--neo-ink);
+}
+
+.neo-plate--mint {
+  background: var(--neo-mint);
+}
+
+.neo-plate--yellow {
+  background: var(--neo-yellow);
+}
+
+.neo-plate--ink {
+  background: var(--neo-ink);
+  color: var(--neo-paper);
+}
+
+/* print grain */
+.neo-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+}
+
+.neo-plate--ink.neo-grain::after {
+  mix-blend-mode: screen;
+  opacity: 0.07;
+}
+
+.neo-plate > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* bordered cell grids (RE-IND style) — ink gutters between paper cells */
+.neo-cellgrid {
+  display: grid;
+  gap: 2px;
+  background: var(--neo-ink);
+}
+
+.neo-cell {
+  background: var(--neo-paper);
+  padding: 1rem 1.25rem;
+  position: relative;
+}
+
+.neo-cell--ink {
+  background: var(--neo-ink);
+  color: var(--neo-paper);
+}
+
+.neo-cell--yellow {
+  background: var(--neo-yellow);
+}
+
+/* ---------- details ---------- */
+
+.neo-rule {
+  height: 2px;
+  background: var(--neo-ink);
+}
+
+.neo-tape {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--neo-ink) 0,
+    var(--neo-ink) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.neo-vert {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.neo-stamp {
+  position: absolute;
+  border: 2px solid var(--neo-orange);
+  color: var(--neo-orange);
+  padding: 0.6rem 0.8rem;
+  transform: rotate(-7deg);
+  opacity: 0.7;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.neo-stamp::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--neo-orange);
+}
+
+.neo-link {
+  font-family: var(--font-plex), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.neo-link:hover {
+  background: var(--neo-orange);
+  color: var(--neo-ink);
+  border-color: var(--neo-ink);
+}
+
+/* ---------- motion ---------- */
+
+.neo-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.neo-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: neo-marquee 26s linear infinite;
+}
+
+@keyframes neo-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.neo-blink {
+  animation: neo-blink 1.3s steps(2, start) infinite;
+}
+
+@keyframes neo-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-marquee-track {
+    animation: none;
+  }
+  .neo-blink {
+    animation: none;
+  }
+}
