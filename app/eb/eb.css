@@ -66,6 +66,10 @@
   color: var(--soft);
   max-width: 40ch;
 }
+.eb-lead-strong {
+  color: var(--ink);
+  font-weight: 500;
+}
 
 .eb-ink {
   color: var(--ink);

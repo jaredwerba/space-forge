@@ -76,31 +76,6 @@ function splitChars(el: HTMLElement): HTMLElement[] {
   return chars;
 }
 
-/* laser-on-a-rock scroll indicator — a thin beam cutting a pixel rock,
-   dust popping off. pixelated, no glow. */
-function LaserRock() {
-  return (
-    <svg width="34" height="46" viewBox="0 0 34 46" aria-hidden="true" shapeRendering="crispEdges">
-      {/* beam */}
-      <rect className="eb-laserbeam" x="16" y="0" width="2" height="33" fill="#ff5a05" />
-      {/* impact pixel on the rock */}
-      <rect className="eb-laserhit" x="14" y="30" width="6" height="6" fill="#ff5a05" />
-      {/* popped dust */}
-      <rect className="eb-rockdust" x="11" y="28" width="2" height="2" fill="#9a958a" style={{ animationDelay: "0s" }} />
-      <rect className="eb-rockdust" x="21" y="27" width="2" height="2" fill="#9a958a" style={{ animationDelay: "-0.6s" }} />
-      <rect className="eb-rockdust" x="17" y="26" width="2" height="2" fill="#ff5a05" style={{ animationDelay: "-1s" }} />
-      {/* rock — pixel mound */}
-      <g fill="#3b382f">
-        <rect x="6" y="40" width="22" height="4" />
-        <rect x="9" y="36" width="16" height="4" />
-        <rect x="13" y="33" width="9" height="3" />
-        <rect x="4" y="42" width="4" height="2" opacity="0.7" />
-        <rect x="26" y="42" width="4" height="2" opacity="0.7" />
-      </g>
-    </svg>
-  );
-}
-
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
@@ -294,7 +269,8 @@ export default function EbExperience() {
       const rows = Math.ceil((h - surfaceY) / cell);
       for (let ry = 0; ry < rows; ry++) {
         for (let rx = 0; rx < cols; rx++) {
-          if (Math.random() < 0.55 - ry * 0.07) surf.push([rx * cell, surfaceY + 3 + ry * cell]);
+          // dense at the horizon, clearing fast so the lead line below reads
+          if (Math.random() < 0.6 - ry * 0.14) surf.push([rx * cell, surfaceY + 3 + ry * cell]);
         }
       }
     };
@@ -483,16 +459,10 @@ export default function EbExperience() {
             </div>
 
             <div ref={footRef} className="eb-hero-foot eb-wrap">
-              <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <p className="eb-lead mx-auto text-center sm:mx-0 sm:text-left">
-                  A field record of building the first reactor housing on the Moon
-                  — from regolith, by laser.
-                </p>
-                <div className="eb-scrollcue eb-label">
-                  <LaserRock />
-                  <span>Scroll</span>
-                </div>
-              </div>
+              <p className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center">
+                A field record of building the first reactor housing on the Moon —
+                from regolith, by laser.
+              </p>
             </div>
           </div>
         </section>
