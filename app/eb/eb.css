@@ -106,7 +106,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: clamp(4.5rem, 13vh, 8rem);
 }
 
 .eb-hero-canvas {

@@ -181,8 +181,9 @@ export default function EbExperience() {
 
     if (reduce) lenis.destroy();
 
-    // expose store for debugging / scene tuning
+    // expose store + lenis for debugging / scene tuning
     (window as unknown as { __eb?: typeof useEbStore }).__eb = useEbStore;
+    (window as unknown as { __ebLenis?: Lenis }).__ebLenis = lenis;
 
     return () => {
       ctx.revert();
@@ -215,6 +216,7 @@ export default function EbExperience() {
     let cx = 0;
     let surfaceY = 0;
     let towerH = 0;
+    let towerTopR = 0;
     const rnd = (n: number) => Math.random() * n;
 
     const build = () => {
@@ -228,15 +230,16 @@ export default function EbExperience() {
       cell = Math.min(13, Math.max(7, Math.round(w / 110)));
 
       cx = w / 2;
-      surfaceY = Math.round(h * 0.76);
+      surfaceY = Math.round(h * 0.78);
 
       // target cells — a hyperbolic nuclear cooling tower standing on the
       // surface: wide flared base, pinched waist, flared open top
-      const rBase = Math.min(w * 0.3, h * 0.2);
-      towerH = Math.min(h * 0.4, rBase * 2.6);
-      const rWaist = rBase * 0.5;
-      const rTop = rBase * 0.66;
-      const waistT = 0.64;
+      const rBase = Math.min(w * 0.28, h * 0.19);
+      towerH = Math.min(h * 0.34, rBase * 2.6);
+      const rWaist = rBase * 0.46;
+      const rTop = rBase * 0.62;
+      towerTopR = rTop;
+      const waistT = 0.66;
       // quadratic radius profile through (0,rBase),(waistT,rWaist),(1,rTop)
       const A = (rWaist - rBase - (rTop - rBase) * waistT) / (waistT * waistT - waistT);
       const B = rTop - rBase - A;
@@ -245,13 +248,13 @@ export default function EbExperience() {
       for (let y = surfaceY; y >= surfaceY - towerH; y -= cell) {
         const t = (surfaceY - y) / towerH; // 0 base .. 1 top
         const rr = Math.max(cell, radiusAt(t));
-        const openTop = t > 0.9; // hollow rim at the very top
+        const openTop = t > 0.86; // hollow rim at the very top
         for (let dx = -rr; dx <= rr; dx += cell) {
-          if (openTop && Math.abs(dx) < rr - cell * 1.4) continue;
+          if (openTop && Math.abs(dx) < rr - cell * 1.3) continue;
           targets.push([cx + dx, y]);
         }
       }
-      const CAP = 250;
+      const CAP = 320;
       if (targets.length > CAP) {
         const step = targets.length / CAP;
         const t2: [number, number][] = [];
@@ -312,12 +315,13 @@ export default function EbExperience() {
 
       // phases: the beam descends (0 -> 0.52), then the dust assembles
       // into the dome (0.5 -> 1) once the laser strikes the surface
-      const descend = Math.min(1, p / 0.52);
-      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.5)));
-      const apexY = surfaceY - towerH * ae;
-      const tipY = descend < 1 ? lerp(0, surfaceY, descend) : apexY;
-      // laser switches off once the structure is finished
-      const laserFade = ae < 0.82 ? 1 : Math.max(0, 1 - (ae - 0.82) / 0.18);
+      // beam descends to the ground (0 -> 0.5); the structure assembles and
+      // the beam sinks straight into the ground (0.5 -> 0.9)
+      const descendBot = Math.min(1, p / 0.5);
+      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.4)));
+      const sink = ae;
+      const beamBotY = surfaceY * descendBot;
+      const beamTopY = surfaceY * sink;
 
       // moon surface — horizon + regolith
       ctx.fillStyle = "rgba(24,22,15,0.8)";
@@ -384,25 +388,36 @@ export default function EbExperience() {
         ctx.fillRect(snap(x), snap(y), cell - 1, cell - 1);
       }
 
-      // the laser — descends to the surface, rides the tower as it builds,
-      // then switches off once the structure is complete
-      if (p > 0.01 && laserFade > 0.01) {
+      // the laser — a solid beam that descends to the ground, then sinks
+      // straight into it and disappears (no fade, no riding up)
+      if (p > 0.01 && beamBotY - beamTopY > 1) {
         const flick = Math.random() > 0.12 ? 1 : 0.3;
-        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick * laserFade})`;
-        for (let yy = 0; yy < tipY; yy += cell) {
+        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick})`;
+        for (let yy = beamTopY; yy < beamBotY; yy += cell) {
           ctx.fillRect(snap(cx) - 1, snap(yy), 2, cell - 1);
         }
-        // focused tip
-        ctx.fillStyle = `rgba(255,150,50,${flick * laserFade})`;
-        ctx.fillRect(snap(cx) - cell / 2, snap(tipY) - cell / 2, cell, cell);
-        // dust pops off the cut once the beam strikes
-        if (descend >= 1) {
-          ctx.fillStyle = `rgba(216,194,160,${0.85 * laserFade})`;
+        // focused head at the leading edge
+        ctx.fillStyle = `rgba(255,150,50,${flick})`;
+        ctx.fillRect(snap(cx) - cell / 2, snap(beamBotY) - cell / 2, cell, cell);
+        // dust pops at the ground impact while the beam is striking
+        if (descendBot >= 1 && sink < 0.85) {
+          ctx.fillStyle = "rgba(216,194,160,0.85)";
           for (let i = 0; i < 4; i++) {
             const ox = snap(cx + (Math.random() - 0.5) * cell * 4);
-            const oy = snap(tipY - Math.random() * cell * 3);
+            const oy = snap(surfaceY - Math.random() * cell * 2.5);
             ctx.fillRect(ox, oy, cell - 3, cell - 3);
           }
+        }
+      }
+
+      // steam drifting up from the cooling tower once it stands
+      if (ae > 0.9) {
+        const topY = surfaceY - towerH;
+        ctx.fillStyle = "rgba(150,146,136,0.42)";
+        for (let i = 0; i < 5; i++) {
+          const sxx = snap(cx + (Math.random() - 0.5) * towerTopR * 1.5);
+          const syy = snap(topY - cell - Math.random() * cell * 6);
+          ctx.fillRect(sxx, syy, cell - 2, cell - 2);
         }
       }
     };
@@ -463,7 +478,7 @@ export default function EbExperience() {
               <p className="eb-label" data-reveal>
                 LunarForge — Field Log 01
               </p>
-              <h1 className="eb-display mx-auto mt-6 text-[clamp(2.7rem,12vw,11rem)]">
+              <h1 className="eb-display mx-auto mt-5 text-[clamp(2.6rem,11vw,6.5rem)]">
                 <span ref={line1Ref} className="block">
                   Where dust
                 </span>
