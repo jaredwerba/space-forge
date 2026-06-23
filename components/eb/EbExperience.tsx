@@ -116,7 +116,8 @@ export default function EbExperience() {
   const line1Ref = useRef<HTMLSpanElement>(null);
   const line2Ref = useRef<HTMLSpanElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
+  const beamRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -139,7 +140,9 @@ export default function EbExperience() {
     const onScroll = () => {
       const limit = lenis.limit || 1;
       const p = Math.min(1, Math.max(0, lenis.scroll / limit));
-      if (progressRef.current) progressRef.current.style.transform = `scaleX(${p})`;
+      const pct = `${(p * 100).toFixed(2)}%`;
+      if (beamRef.current) beamRef.current.style.width = pct;
+      if (tipRef.current) tipRef.current.style.left = pct;
       if (numRef.current) numRef.current.textContent = `${String(Math.round(p * 100)).padStart(2, "0")}%`;
     };
     lenis.on("scroll", onScroll);
@@ -214,7 +217,8 @@ export default function EbExperience() {
     };
   }, []);
 
-  // ---- hero canvas: pixel dust assembling into the reactor dome ----
+  // ---- hero canvas: a laser descends with scroll, strikes the moon
+  //      surface, and the dust forms into the reactor dome from the cut ----
   useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
@@ -232,8 +236,9 @@ export default function EbExperience() {
     type Amb = { x: number; y: number; vx: number; vy: number };
     let dome: Dome[] = [];
     let amb: Amb[] = [];
+    let surf: [number, number][] = [];
     let cx = 0;
-    let baseY = 0;
+    let surfaceY = 0;
     let R = 0;
     const rnd = (n: number) => Math.random() * n;
 
@@ -248,45 +253,55 @@ export default function EbExperience() {
       cell = Math.min(13, Math.max(7, Math.round(w / 110)));
 
       cx = w / 2;
-      baseY = h * 0.82;
-      R = Math.min(w * 0.4, h * 0.34);
+      surfaceY = Math.round(h * 0.76);
+      R = Math.min(w * 0.34, h * 0.3);
 
-      // dome target cells (filled semicircle, subsampled)
+      // dome target cells — a semicircle standing on the surface
       let targets: [number, number][] = [];
       for (let dy = 0; dy >= -R; dy -= cell) {
         const span = Math.sqrt(Math.max(0, R * R - dy * dy));
         for (let dx = -span; dx <= span; dx += cell) {
-          targets.push([cx + dx, baseY + dy]);
+          targets.push([cx + dx, surfaceY + dy]);
         }
       }
-      const CAP = 240;
+      const CAP = 230;
       if (targets.length > CAP) {
         const step = targets.length / CAP;
         const t2: [number, number][] = [];
         for (let i = 0; i < targets.length; i += step) t2.push(targets[Math.floor(i)]);
         targets = t2;
       }
+      // dust homes scattered in the sky above the surface
       dome = targets.map(([tx, ty]) => ({
         hx: rnd(w),
-        hy: rnd(h),
+        hy: rnd(surfaceY),
         tx,
         ty,
         warm: 0.4 + Math.random() * 0.6,
       }));
 
-      const ambCount = Math.min(140, Math.round((w * h) / 13000));
+      const ambCount = Math.min(120, Math.round((w * surfaceY) / 12000));
       amb = Array.from({ length: ambCount }, () => ({
         x: rnd(w),
-        y: rnd(h),
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: -0.05 - Math.random() * 0.18,
+        y: rnd(surfaceY),
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: -0.04 - Math.random() * 0.16,
       }));
+
+      // moon regolith band below the horizon
+      surf = [];
+      const cols = Math.ceil(w / cell);
+      const rows = Math.ceil((h - surfaceY) / cell);
+      for (let ry = 0; ry < rows; ry++) {
+        for (let rx = 0; rx < cols; rx++) {
+          if (Math.random() < 0.55 - ry * 0.07) surf.push([rx * cell, surfaceY + 3 + ry * cell]);
+        }
+      }
     };
     build();
     const ro = new ResizeObserver(build);
     ro.observe(stage);
 
-    // pointer (desktop bonus)
     const onMove = (e: PointerEvent) => {
       const r = stage.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width;
@@ -304,18 +319,30 @@ export default function EbExperience() {
       if (now - last < 33) return;
       last = now;
       const s = useEbStore.getState();
-      const p = reduce ? 0.18 : s.progress;
-      const pe = smooth(Math.min(1, Math.max(0, p)));
+      const p = reduce ? 0.9 : Math.min(1, Math.max(0, s.progress));
       ctx.clearRect(0, 0, w, h);
 
-      // ambient dust — drifts, fades out as the dome forms
-      const ambA = (1 - pe) * 0.5;
+      // phases: the beam descends (0 -> 0.52), then the dust assembles
+      // into the dome (0.5 -> 1) once the laser strikes the surface
+      const descend = Math.min(1, p / 0.52);
+      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.5)));
+      const apexY = surfaceY - R * ae;
+      const tipY = descend < 1 ? lerp(0, surfaceY, descend) : apexY;
+
+      // moon surface — horizon + regolith
+      ctx.fillStyle = "rgba(24,22,15,0.8)";
+      ctx.fillRect(0, surfaceY, w, 2);
+      ctx.fillStyle = "rgba(70,66,55,0.45)";
+      for (const [sx, sy] of surf) ctx.fillRect(sx, sy, cell - 1, cell - 1);
+
+      // ambient dust drifting in the sky, consumed as the dome forms
+      const ambA = (1 - ae) * 0.45;
       if (ambA > 0.02) {
         for (const a of amb) {
           a.x += a.vx;
           a.y += a.vy;
           if (a.y < -cell) {
-            a.y = h + cell;
+            a.y = surfaceY;
             a.x = rnd(w);
           }
           if (a.x < -cell) a.x = w + cell;
@@ -327,7 +354,7 @@ export default function EbExperience() {
             const ddy = a.y - s.py * h;
             const d2 = ddx * ddx + ddy * ddy;
             if (d2 < 16000) {
-              const f = (1 - d2 / 16000) * 26 * (1 - pe);
+              const f = (1 - d2 / 16000) * 24 * (1 - ae);
               const d = Math.sqrt(d2) || 1;
               dx += (ddx / d) * f;
               dy += (ddy / d) * f;
@@ -338,54 +365,51 @@ export default function EbExperience() {
         }
       }
 
-      // dome dust — scattered home → target, gray → warm
+      // dust assembling into the dome — scattered sky -> dome, gray -> warm
       for (const d of dome) {
-        let x = lerp(d.hx, d.tx, pe);
-        let y = lerp(d.hy, d.ty, pe);
-        if (pe < 0.96) {
-          const j = (1 - pe) * cell * 0.5;
+        let x = lerp(d.hx, d.tx, ae);
+        let y = lerp(d.hy, d.ty, ae);
+        if (ae < 0.96) {
+          const j = (1 - ae) * cell * 0.6;
           x += (Math.random() - 0.5) * j;
           y += (Math.random() - 0.5) * j;
         }
-        if (finePointer && s.pointer && pe < 0.6) {
+        if (finePointer && s.pointer && ae < 0.5) {
           const ddx = x - s.px * w;
           const ddy = y - s.py * h;
           const d2 = ddx * ddx + ddy * ddy;
           if (d2 < 14000) {
-            const f = (1 - d2 / 14000) * 22 * (1 - pe);
+            const f = (1 - d2 / 14000) * 22 * (1 - ae);
             const dd = Math.sqrt(d2) || 1;
             x += (ddx / dd) * f;
             y += (ddy / dd) * f;
           }
         }
-        const warm = pe * d.warm;
+        const warm = ae * d.warm;
         const rr = Math.round(lerp(56, 196, warm));
         const gg = Math.round(lerp(53, 118, warm));
         const bb = Math.round(lerp(43, 48, warm));
-        const a = 0.35 + pe * 0.6;
+        const a = 0.38 + ae * 0.57;
         ctx.fillStyle = `rgba(${rr},${gg},${bb},${a})`;
         ctx.fillRect(snap(x), snap(y), cell - 1, cell - 1);
       }
 
-      // laser beam descending onto the apex + cut
-      const apexY = baseY - R;
-      const bp = Math.min(1, Math.max(0, (pe - 0.18) / 0.5));
-      if (bp > 0) {
-        const endY = lerp(0, apexY, bp);
-        const flick = Math.random() > 0.12 ? 1 : 0.25;
-        ctx.fillStyle = `rgba(255,90,5,${0.9 * flick})`;
-        for (let yy = 0; yy < endY; yy += cell) {
+      // the laser — descends from the top to the tip (surface, then dome apex)
+      if (p > 0.01) {
+        const flick = Math.random() > 0.12 ? 1 : 0.3;
+        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick})`;
+        for (let yy = 0; yy < tipY; yy += cell) {
           ctx.fillRect(snap(cx) - 1, snap(yy), 2, cell - 1);
         }
-        // bright cut pixel
-        ctx.fillStyle = `rgba(255,140,40,${flick})`;
-        ctx.fillRect(snap(cx) - cell / 2, snap(endY), cell, cell);
-        // dust pop at the cut when nearly formed
-        if (pe > 0.55) {
+        // focused tip
+        ctx.fillStyle = `rgba(255,150,50,${flick})`;
+        ctx.fillRect(snap(cx) - cell / 2, snap(tipY) - cell / 2, cell, cell);
+        // dust pops off the cut once the beam strikes
+        if (descend >= 1) {
           ctx.fillStyle = "rgba(216,194,160,0.85)";
           for (let i = 0; i < 4; i++) {
             const ox = snap(cx + (Math.random() - 0.5) * cell * 4);
-            const oy = snap(apexY - Math.random() * cell * 3);
+            const oy = snap(tipY - Math.random() * cell * 3);
             ctx.fillRect(ox, oy, cell - 3, cell - 3);
           }
         }
@@ -430,8 +454,11 @@ export default function EbExperience() {
         </div>
       </header>
 
-      {/* progress */}
-      <div ref={progressRef} className="eb-progress" aria-hidden />
+      {/* progress — laser beam */}
+      <div className="eb-progress" aria-hidden>
+        <div ref={beamRef} className="eb-progress-beam" />
+        <div ref={tipRef} className="eb-progress-tip" />
+      </div>
       <div ref={numRef} className="eb-progress-num" aria-hidden>
         00%
       </div>

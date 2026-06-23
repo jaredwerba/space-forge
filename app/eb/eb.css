@@ -129,16 +129,47 @@
 
 /* ---------- scroll cues ---------- */
 
+/* page progress rendered as a firing laser beam */
 .eb-progress {
   position: fixed;
   left: 0;
   bottom: 0;
-  height: 2px;
+  height: 4px;
   width: 100%;
   z-index: 70;
-  transform-origin: left;
-  transform: scaleX(0);
-  background: var(--orange);
+  background: rgba(24, 22, 15, 0.06);
+}
+.eb-progress-beam {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  width: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 90, 5, 0.25),
+    rgba(255, 90, 5, 0.85) 78%,
+    #ffae5e
+  );
+}
+.eb-progress-tip {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 3px;
+  height: 9px;
+  background: #ffc46b;
+  transform: translateX(-1px);
+  animation: eb-laserflick 0.4s steps(2, end) infinite;
+}
+@keyframes eb-laserflick {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .eb-progress-num {
@@ -366,7 +397,8 @@ html.lenis body {
   .eb-scrollcue .bar::after,
   .eb-laserbeam,
   .eb-laserhit,
-  .eb-rockdust {
+  .eb-rockdust,
+  .eb-progress-tip {
     animation: none;
   }
 }
