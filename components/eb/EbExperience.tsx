@@ -214,7 +214,7 @@ export default function EbExperience() {
     let surf: [number, number][] = [];
     let cx = 0;
     let surfaceY = 0;
-    let R = 0;
+    let towerH = 0;
     const rnd = (n: number) => Math.random() * n;
 
     const build = () => {
@@ -229,17 +229,29 @@ export default function EbExperience() {
 
       cx = w / 2;
       surfaceY = Math.round(h * 0.76);
-      R = Math.min(w * 0.34, h * 0.3);
 
-      // dome target cells — a semicircle standing on the surface
+      // target cells — a hyperbolic nuclear cooling tower standing on the
+      // surface: wide flared base, pinched waist, flared open top
+      const rBase = Math.min(w * 0.3, h * 0.2);
+      towerH = Math.min(h * 0.4, rBase * 2.6);
+      const rWaist = rBase * 0.5;
+      const rTop = rBase * 0.66;
+      const waistT = 0.64;
+      // quadratic radius profile through (0,rBase),(waistT,rWaist),(1,rTop)
+      const A = (rWaist - rBase - (rTop - rBase) * waistT) / (waistT * waistT - waistT);
+      const B = rTop - rBase - A;
+      const radiusAt = (t: number) => A * t * t + B * t + rBase;
       let targets: [number, number][] = [];
-      for (let dy = 0; dy >= -R; dy -= cell) {
-        const span = Math.sqrt(Math.max(0, R * R - dy * dy));
-        for (let dx = -span; dx <= span; dx += cell) {
-          targets.push([cx + dx, surfaceY + dy]);
+      for (let y = surfaceY; y >= surfaceY - towerH; y -= cell) {
+        const t = (surfaceY - y) / towerH; // 0 base .. 1 top
+        const rr = Math.max(cell, radiusAt(t));
+        const openTop = t > 0.9; // hollow rim at the very top
+        for (let dx = -rr; dx <= rr; dx += cell) {
+          if (openTop && Math.abs(dx) < rr - cell * 1.4) continue;
+          targets.push([cx + dx, y]);
         }
       }
-      const CAP = 230;
+      const CAP = 250;
       if (targets.length > CAP) {
         const step = targets.length / CAP;
         const t2: [number, number][] = [];
@@ -302,8 +314,10 @@ export default function EbExperience() {
       // into the dome (0.5 -> 1) once the laser strikes the surface
       const descend = Math.min(1, p / 0.52);
       const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.5)));
-      const apexY = surfaceY - R * ae;
+      const apexY = surfaceY - towerH * ae;
       const tipY = descend < 1 ? lerp(0, surfaceY, descend) : apexY;
+      // laser switches off once the structure is finished
+      const laserFade = ae < 0.82 ? 1 : Math.max(0, 1 - (ae - 0.82) / 0.18);
 
       // moon surface — horizon + regolith
       ctx.fillStyle = "rgba(24,22,15,0.8)";
@@ -370,19 +384,20 @@ export default function EbExperience() {
         ctx.fillRect(snap(x), snap(y), cell - 1, cell - 1);
       }
 
-      // the laser — descends from the top to the tip (surface, then dome apex)
-      if (p > 0.01) {
+      // the laser — descends to the surface, rides the tower as it builds,
+      // then switches off once the structure is complete
+      if (p > 0.01 && laserFade > 0.01) {
         const flick = Math.random() > 0.12 ? 1 : 0.3;
-        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick})`;
+        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick * laserFade})`;
         for (let yy = 0; yy < tipY; yy += cell) {
           ctx.fillRect(snap(cx) - 1, snap(yy), 2, cell - 1);
         }
         // focused tip
-        ctx.fillStyle = `rgba(255,150,50,${flick})`;
+        ctx.fillStyle = `rgba(255,150,50,${flick * laserFade})`;
         ctx.fillRect(snap(cx) - cell / 2, snap(tipY) - cell / 2, cell, cell);
         // dust pops off the cut once the beam strikes
         if (descend >= 1) {
-          ctx.fillStyle = "rgba(216,194,160,0.85)";
+          ctx.fillStyle = `rgba(216,194,160,${0.85 * laserFade})`;
           for (let i = 0; i < 4; i++) {
             const ox = snap(cx + (Math.random() - 0.5) * cell * 4);
             const oy = snap(tipY - Math.random() * cell * 3);
