@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { useEbStore } from "@/lib/ebStore";
+import { buildPlant } from "@/lib/ebPlant";
 
 const beats = [
   {
@@ -208,16 +209,24 @@ export default function EbExperience() {
     let h = 0;
     let dpr = 1;
     let cell = 9;
-    type Dome = { hx: number; hy: number; tx: number; ty: number; warm: number };
+    type RGB = [number, number, number];
+    type Particle = { hx: number; hy: number; tx: number; ty: number; s: number; c: RGB };
     type Amb = { x: number; y: number; vx: number; vy: number };
-    let dome: Dome[] = [];
+    type Puff = { x: number; y: number; vx: number; vy: number; age: number; max: number; r: number; c: RGB };
+    let particles: Particle[] = [];
     let amb: Amb[] = [];
     let surf: [number, number][] = [];
+    let towers: { x: number; topY: number; r: number }[] = [];
+    let puffs: Puff[] = [];
     let cx = 0;
     let surfaceY = 0;
-    let towerH = 0;
-    let towerTopR = 0;
     const rnd = (n: number) => Math.random() * n;
+    const DUST: RGB = [120, 114, 100];
+    const STEAM: RGB[] = [
+      [150, 156, 160],
+      [172, 178, 182],
+      [134, 140, 145],
+    ];
 
     const build = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -227,50 +236,25 @@ export default function EbExperience() {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cell = Math.min(13, Math.max(7, Math.round(w / 110)));
 
       cx = w / 2;
-      surfaceY = Math.round(h * 0.78);
+      surfaceY = Math.round(h * 0.79);
 
-      // target cells — a hyperbolic nuclear cooling tower standing on the
-      // surface: wide flared base, pinched waist, flared open top
-      const rBase = Math.min(w * 0.28, h * 0.19);
-      towerH = Math.min(h * 0.34, rBase * 2.6);
-      const rWaist = rBase * 0.46;
-      const rTop = rBase * 0.62;
-      towerTopR = rTop;
-      const waistT = 0.66;
-      // quadratic radius profile through (0,rBase),(waistT,rWaist),(1,rTop)
-      const A = (rWaist - rBase - (rTop - rBase) * waistT) / (waistT * waistT - waistT);
-      const B = rTop - rBase - A;
-      const radiusAt = (t: number) => A * t * t + B * t + rBase;
-      let targets: [number, number][] = [];
-      for (let y = surfaceY; y >= surfaceY - towerH; y -= cell) {
-        const t = (surfaceY - y) / towerH; // 0 base .. 1 top
-        const rr = Math.max(cell, radiusAt(t));
-        const openTop = t > 0.86; // hollow rim at the very top
-        for (let dx = -rr; dx <= rr; dx += cell) {
-          if (openTop && Math.abs(dx) < rr - cell * 1.3) continue;
-          targets.push([cx + dx, y]);
-        }
-      }
-      const CAP = 320;
-      if (targets.length > CAP) {
-        const step = targets.length / CAP;
-        const t2: [number, number][] = [];
-        for (let i = 0; i < targets.length; i += step) t2.push(targets[Math.floor(i)]);
-        targets = t2;
-      }
-      // dust homes scattered in the sky above the surface
-      dome = targets.map(([tx, ty]) => ({
+      // build the detailed nuclear plant; each block becomes a dust particle
+      const plant = buildPlant(cx, surfaceY, w, h);
+      cell = plant.big;
+      towers = plant.towers;
+      particles = plant.blocks.map((b) => ({
         hx: rnd(w),
         hy: rnd(surfaceY),
-        tx,
-        ty,
-        warm: 0.4 + Math.random() * 0.6,
+        tx: b.x,
+        ty: b.y,
+        s: b.s,
+        c: b.c,
       }));
+      puffs = [];
 
-      const ambCount = Math.min(120, Math.round((w * surfaceY) / 12000));
+      const ambCount = Math.min(110, Math.round((w * surfaceY) / 14000));
       amb = Array.from({ length: ambCount }, () => ({
         x: rnd(w),
         y: rnd(surfaceY),
@@ -284,7 +268,6 @@ export default function EbExperience() {
       const rows = Math.ceil((h - surfaceY) / cell);
       for (let ry = 0; ry < rows; ry++) {
         for (let rx = 0; rx < cols; rx++) {
-          // dense at the horizon, clearing fast so the lead line below reads
           if (Math.random() < 0.6 - ry * 0.14) surf.push([rx * cell, surfaceY + 3 + ry * cell]);
         }
       }
@@ -303,7 +286,6 @@ export default function EbExperience() {
 
     let raf = 0;
     let last = 0;
-    const snap = (v: number) => Math.round(v / cell) * cell;
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -313,10 +295,8 @@ export default function EbExperience() {
       const p = reduce ? 0.9 : Math.min(1, Math.max(0, s.progress));
       ctx.clearRect(0, 0, w, h);
 
-      // phases: the beam descends (0 -> 0.52), then the dust assembles
-      // into the dome (0.5 -> 1) once the laser strikes the surface
-      // beam descends to the ground (0 -> 0.5); the structure assembles and
-      // the beam sinks straight into the ground (0.5 -> 0.9)
+      // beam descends to the ground (0 -> 0.5); the plant assembles and the
+      // beam sinks straight into the ground (0.5 -> 0.9)
       const descendBot = Math.min(1, p / 0.5);
       const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.4)));
       const sink = ae;
@@ -329,8 +309,8 @@ export default function EbExperience() {
       ctx.fillStyle = "rgba(70,66,55,0.45)";
       for (const [sx, sy] of surf) ctx.fillRect(sx, sy, cell - 1, cell - 1);
 
-      // ambient dust drifting in the sky, consumed as the dome forms
-      const ambA = (1 - ae) * 0.45;
+      // ambient sky dust, consumed as the plant forms
+      const ambA = (1 - ae) * 0.42;
       if (ambA > 0.02) {
         for (const a of amb) {
           a.x += a.vx;
@@ -348,78 +328,100 @@ export default function EbExperience() {
             const ddy = a.y - s.py * h;
             const d2 = ddx * ddx + ddy * ddy;
             if (d2 < 16000) {
-              const f = (1 - d2 / 16000) * 24 * (1 - ae);
+              const f = (1 - d2 / 16000) * 22 * (1 - ae);
               const d = Math.sqrt(d2) || 1;
               dx += (ddx / d) * f;
               dy += (ddy / d) * f;
             }
           }
-          ctx.fillStyle = `rgba(48,45,36,${ambA})`;
-          ctx.fillRect(snap(dx), snap(dy), cell - 1, cell - 1);
+          ctx.fillStyle = `rgba(120,114,100,${ambA})`;
+          ctx.fillRect(Math.round(dx), Math.round(dy), cell - 2, cell - 2);
         }
       }
 
-      // dust assembling into the dome — scattered sky -> dome, gray -> warm
-      for (const d of dome) {
-        let x = lerp(d.hx, d.tx, ae);
-        let y = lerp(d.hy, d.ty, ae);
-        if (ae < 0.96) {
-          const j = (1 - ae) * cell * 0.6;
+      // particles assembling into the plant — gray dust -> shaded blocks
+      for (const pt of particles) {
+        let x = lerp(pt.hx, pt.tx, ae);
+        let y = lerp(pt.hy, pt.ty, ae);
+        if (ae < 0.97) {
+          const j = (1 - ae) * cell * 0.7;
           x += (Math.random() - 0.5) * j;
           y += (Math.random() - 0.5) * j;
         }
-        if (finePointer && s.pointer && ae < 0.5) {
+        if (finePointer && s.pointer && ae < 0.45) {
           const ddx = x - s.px * w;
           const ddy = y - s.py * h;
           const d2 = ddx * ddx + ddy * ddy;
-          if (d2 < 14000) {
-            const f = (1 - d2 / 14000) * 22 * (1 - ae);
+          if (d2 < 13000) {
+            const f = (1 - d2 / 13000) * 20 * (1 - ae);
             const dd = Math.sqrt(d2) || 1;
             x += (ddx / dd) * f;
             y += (ddy / dd) * f;
           }
         }
-        const warm = ae * d.warm;
-        const rr = Math.round(lerp(56, 196, warm));
-        const gg = Math.round(lerp(53, 118, warm));
-        const bb = Math.round(lerp(43, 48, warm));
-        const a = 0.38 + ae * 0.57;
-        ctx.fillStyle = `rgba(${rr},${gg},${bb},${a})`;
-        ctx.fillRect(snap(x), snap(y), cell - 1, cell - 1);
+        const cr = Math.round(lerp(DUST[0], pt.c[0], ae));
+        const cg = Math.round(lerp(DUST[1], pt.c[1], ae));
+        const cb = Math.round(lerp(DUST[2], pt.c[2], ae));
+        const sz = Math.ceil(lerp(Math.max(2, cell * 0.5), pt.s, ae));
+        const a = 0.42 + ae * 0.55;
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${a})`;
+        ctx.fillRect(Math.round(x), Math.round(y), sz, sz);
       }
 
-      // the laser — a solid beam that descends to the ground, then sinks
-      // straight into it and disappears (no fade, no riding up)
+      // laser — descends to the ground, then sinks into it (no fade/up)
       if (p > 0.01 && beamBotY - beamTopY > 1) {
         const flick = Math.random() > 0.12 ? 1 : 0.3;
         ctx.fillStyle = `rgba(255,90,5,${0.92 * flick})`;
         for (let yy = beamTopY; yy < beamBotY; yy += cell) {
-          ctx.fillRect(snap(cx) - 1, snap(yy), 2, cell - 1);
+          ctx.fillRect(Math.round(cx) - 1, Math.round(yy), 2, cell - 1);
         }
-        // focused head at the leading edge
         ctx.fillStyle = `rgba(255,150,50,${flick})`;
-        ctx.fillRect(snap(cx) - cell / 2, snap(beamBotY) - cell / 2, cell, cell);
-        // dust pops at the ground impact while the beam is striking
+        ctx.fillRect(Math.round(cx) - cell / 2, Math.round(beamBotY) - cell / 2, cell, cell);
         if (descendBot >= 1 && sink < 0.85) {
           ctx.fillStyle = "rgba(216,194,160,0.85)";
           for (let i = 0; i < 4; i++) {
-            const ox = snap(cx + (Math.random() - 0.5) * cell * 4);
-            const oy = snap(surfaceY - Math.random() * cell * 2.5);
-            ctx.fillRect(ox, oy, cell - 3, cell - 3);
+            const ox = Math.round(cx + (Math.random() - 0.5) * cell * 4);
+            const oy = Math.round(surfaceY - Math.random() * cell * 2.5);
+            ctx.fillRect(ox, oy, cell - 2, cell - 2);
           }
         }
       }
 
-      // steam drifting up from the cooling tower once it stands
-      if (ae > 0.9) {
-        const topY = surfaceY - towerH;
-        ctx.fillStyle = "rgba(150,146,136,0.42)";
-        for (let i = 0; i < 5; i++) {
-          const sxx = snap(cx + (Math.random() - 0.5) * towerTopR * 1.5);
-          const syy = snap(topY - cell - Math.random() * cell * 6);
-          ctx.fillRect(sxx, syy, cell - 2, cell - 2);
+      // animated steam billowing from each tower top once the plant stands
+      if (ae > 0.8) {
+        const intensity = (ae - 0.8) / 0.2;
+        for (const tw of towers) {
+          if (Math.random() < 0.5 * intensity) {
+            puffs.push({
+              x: tw.x + (Math.random() - 0.5) * tw.r * 1.3,
+              y: tw.topY - cell,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: -(0.5 + Math.random() * 0.7),
+              age: 0,
+              max: 70 + Math.random() * 60,
+              r: cell * (1 + Math.random() * 1.4),
+              c: STEAM[Math.floor(Math.random() * STEAM.length)],
+            });
+          }
         }
       }
+      for (let i = puffs.length - 1; i >= 0; i--) {
+        const pf = puffs[i];
+        pf.age++;
+        if (pf.age > pf.max) {
+          puffs.splice(i, 1);
+          continue;
+        }
+        pf.x += pf.vx;
+        pf.y += pf.vy;
+        pf.vy *= 0.99;
+        pf.r += 0.16;
+        const lifeA = (1 - pf.age / pf.max) * 0.5;
+        ctx.fillStyle = `rgba(${pf.c[0]},${pf.c[1]},${pf.c[2]},${lifeA})`;
+        const rr = Math.round(pf.r);
+        ctx.fillRect(Math.round(pf.x - rr / 2), Math.round(pf.y - rr / 2), rr, rr);
+      }
+      if (puffs.length > 200) puffs.splice(0, puffs.length - 200);
     };
     raf = requestAnimationFrame(frame);
 
