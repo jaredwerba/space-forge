@@ -88,15 +88,21 @@
   background: var(--line);
 }
 
-/* ---------- hero ---------- */
+/* ---------- hero (sticky scroll-scrubbed scene) ---------- */
 
-.eb-hero {
+.eb-hero-track {
   position: relative;
-  min-height: 100svh;
+  height: 260svh;
+}
+
+.eb-hero-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow: hidden;
 }
 
 .eb-hero-canvas {
@@ -109,6 +115,15 @@
 
 .eb-hero-inner {
   position: relative;
+  z-index: 2;
+}
+
+/* fallback so the headline is centered before JS scrub takes over */
+.eb-hero-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(1.5rem, 5vh, 3rem);
   z-index: 2;
 }
 
@@ -167,6 +182,56 @@
   }
 }
 
+/* laser-on-a-rock scroll indicator */
+.eb-laserbeam {
+  animation: eb-laser 1.5s steps(1, end) infinite;
+}
+@keyframes eb-laser {
+  0%,
+  46%,
+  54%,
+  100% {
+    opacity: 1;
+  }
+  48%,
+  52% {
+    opacity: 0.2;
+  }
+}
+.eb-laserhit {
+  animation: eb-hit 1.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes eb-hit {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+.eb-rockdust {
+  transform-box: fill-box;
+  animation: eb-rockdust 1.5s linear infinite;
+}
+@keyframes eb-rockdust {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+
 /* ---------- reveal / split (only when JS active) ---------- */
 
 .eb-js [data-reveal] {
@@ -174,14 +239,14 @@
   transform: translateY(28px);
   will-change: transform, opacity;
 }
-.eb-js [data-split] .eb-char {
+.eb-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.eb-js .eb-char {
   display: inline-block;
   opacity: 0;
   will-change: opacity;
-}
-.eb-char-space {
-  display: inline-block;
-  width: 0.28em;
 }
 
 /* ---------- gallery ---------- */
@@ -294,11 +359,14 @@ html.lenis body {
 
 @media (prefers-reduced-motion: reduce) {
   .eb-js [data-reveal],
-  .eb-js [data-split] .eb-char {
+  .eb-js .eb-char {
     opacity: 1 !important;
     transform: none !important;
   }
-  .eb-scrollcue .bar::after {
+  .eb-scrollcue .bar::after,
+  .eb-laserbeam,
+  .eb-laserhit,
+  .eb-rockdust {
     animation: none;
   }
 }
