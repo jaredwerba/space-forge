@@ -108,6 +108,18 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-top: clamp(4.5rem, 13vh, 8rem);
+  background: #06070e;
+}
+
+/* hero sits on a black starfield — lift the type to light */
+.eb-hero-stage .eb-label {
+  color: rgba(214, 217, 226, 0.66);
+}
+.eb-hero-stage .eb-display {
+  color: #eef0f6;
+}
+.eb-hero-stage .eb-lead-strong {
+  color: rgba(232, 234, 242, 0.92);
 }
 
 .eb-hero-canvas {

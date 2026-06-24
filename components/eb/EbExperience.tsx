@@ -215,17 +215,18 @@ export default function EbExperience() {
     type Puff = { x: number; y: number; vx: number; vy: number; age: number; max: number; r: number; c: RGB };
     let particles: Particle[] = [];
     let amb: Amb[] = [];
-    let surf: [number, number][] = [];
+    let moon: { x: number; y: number; s: number; c: RGB }[] = [];
+    let stars: { x: number; y: number; sz: number; tw: number }[] = [];
     let towers: { x: number; topY: number; r: number }[] = [];
     let puffs: Puff[] = [];
     let cx = 0;
     let surfaceY = 0;
     const rnd = (n: number) => Math.random() * n;
-    const DUST: RGB = [120, 114, 100];
+    const DUST: RGB = [170, 164, 150];
     const STEAM: RGB[] = [
-      [150, 156, 160],
-      [172, 178, 182],
-      [134, 140, 145],
+      [188, 192, 196],
+      [214, 218, 222],
+      [166, 170, 176],
     ];
 
     const build = () => {
@@ -238,7 +239,7 @@ export default function EbExperience() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       cx = w / 2;
-      surfaceY = Math.round(h * 0.79);
+      surfaceY = Math.round(h * 0.75);
 
       // build the detailed nuclear plant; each block becomes a dust particle
       const plant = buildPlant(cx, surfaceY, w, h);
@@ -262,13 +263,57 @@ export default function EbExperience() {
         vy: -0.04 - Math.random() * 0.16,
       }));
 
-      // moon regolith band below the horizon
-      surf = [];
-      const cols = Math.ceil(w / cell);
-      const rows = Math.ceil((h - surfaceY) / cell);
-      for (let ry = 0; ry < rows; ry++) {
-        for (let rx = 0; rx < cols; rx++) {
-          if (Math.random() < 0.6 - ry * 0.14) surf.push([rx * cell, surfaceY + 3 + ry * cell]);
+      // starfield in the night sky
+      stars = [];
+      const starCount = Math.round((w * surfaceY) / 5200);
+      for (let i = 0; i < starCount; i++) {
+        stars.push({
+          x: rnd(w),
+          y: rnd(surfaceY * 0.97),
+          sz: Math.random() < 0.16 ? 2 : 1,
+          tw: Math.random() * 6.28,
+        });
+      }
+
+      // cratered moon foreground — rolling dunes + lit-rim craters
+      moon = [];
+      const MG: RGB[] = [
+        [170, 172, 178], // lit rim / crest
+        [140, 142, 148],
+        [112, 114, 120],
+        [86, 88, 94],
+        [60, 62, 68], // deep pit
+      ];
+      const gb = cell * 2;
+      const gcols = Math.ceil(w / gb) + 1;
+      const grows = Math.ceil((h - surfaceY) / gb) + 1;
+      const craters = Array.from({ length: 6 }, () => ({
+        cx: rnd(w),
+        cy: surfaceY + gb * 1.4 + rnd(h - surfaceY - gb * 1.4),
+        r: gb * (1.5 + Math.random() * 2.3),
+      }));
+      for (let gy = 0; gy < grows; gy++) {
+        for (let gx = 0; gx < gcols; gx++) {
+          const x = gx * gb;
+          const y = surfaceY + gy * gb;
+          const depth = gy / grows;
+          const dune = Math.sin(x * 0.015 + Math.cos(y * 0.028) * 1.3) * 0.5 + 0.5;
+          const v = depth * 0.42 + (1 - dune) * 0.28 + (Math.random() - 0.5) * 0.12;
+          let idx = Math.max(0, Math.min(3, Math.round(v * 3)));
+          for (const cr of craters) {
+            const ddx = x - cr.cx;
+            const ddy = y - cr.cy;
+            const dd = Math.hypot(ddx, ddy);
+            if (dd < cr.r * 0.46) {
+              idx = 4; // deep pit centre
+            } else if (dd < cr.r * 0.82) {
+              idx = 3; // pit floor
+            } else if (dd < cr.r) {
+              const lit = (ddx * -0.6 + ddy * -0.55) / (dd || 1); // upper-left rim
+              idx = lit > 0.15 ? 0 : 2;
+            }
+          }
+          moon.push({ x, y, s: gb, c: MG[Math.max(0, Math.min(4, idx))] });
         }
       }
     };
@@ -293,7 +338,8 @@ export default function EbExperience() {
       last = now;
       const s = useEbStore.getState();
       const p = reduce ? 0.9 : Math.min(1, Math.max(0, s.progress));
-      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#06070e";
+      ctx.fillRect(0, 0, w, h);
 
       // beam descends to the ground (0 -> 0.5); the plant assembles and the
       // beam sinks straight into the ground (0.5 -> 0.9)
@@ -303,11 +349,19 @@ export default function EbExperience() {
       const beamBotY = surfaceY * descendBot;
       const beamTopY = surfaceY * sink;
 
-      // moon surface — horizon + regolith
-      ctx.fillStyle = "rgba(24,22,15,0.8)";
+      // starfield — faint twinkle in the night sky
+      for (const st of stars) {
+        const ta = 0.5 + 0.5 * Math.sin(now * 0.002 + st.tw);
+        ctx.fillStyle = `rgba(232,234,242,${ta})`;
+        ctx.fillRect(st.x, st.y, st.sz, st.sz);
+      }
+      // cratered moon foreground
+      for (const m of moon) {
+        ctx.fillStyle = `rgb(${m.c[0]},${m.c[1]},${m.c[2]})`;
+        ctx.fillRect(m.x, m.y, m.s, m.s);
+      }
+      ctx.fillStyle = "rgba(18,18,24,0.85)";
       ctx.fillRect(0, surfaceY, w, 2);
-      ctx.fillStyle = "rgba(70,66,55,0.45)";
-      for (const [sx, sy] of surf) ctx.fillRect(sx, sy, cell - 1, cell - 1);
 
       // ambient sky dust, consumed as the plant forms
       const ambA = (1 - ae) * 0.42;
@@ -334,7 +388,7 @@ export default function EbExperience() {
               dy += (ddy / d) * f;
             }
           }
-          ctx.fillStyle = `rgba(120,114,100,${ambA})`;
+          ctx.fillStyle = `rgba(150,145,132,${ambA})`;
           ctx.fillRect(Math.round(dx), Math.round(dy), cell - 2, cell - 2);
         }
       }
@@ -388,18 +442,18 @@ export default function EbExperience() {
       }
 
       // animated steam billowing from each tower top once the plant stands
-      if (ae > 0.8) {
-        const intensity = (ae - 0.8) / 0.2;
+      if (ae > 0.82) {
+        const intensity = (ae - 0.82) / 0.18;
         for (const tw of towers) {
-          if (Math.random() < 0.5 * intensity) {
+          if (Math.random() < 0.22 * intensity) {
             puffs.push({
-              x: tw.x + (Math.random() - 0.5) * tw.r * 1.3,
+              x: tw.x + (Math.random() - 0.5) * tw.r,
               y: tw.topY - cell,
-              vx: (Math.random() - 0.5) * 0.5,
-              vy: -(0.5 + Math.random() * 0.7),
+              vx: (Math.random() - 0.5) * 0.32,
+              vy: -(0.3 + Math.random() * 0.42),
               age: 0,
-              max: 70 + Math.random() * 60,
-              r: cell * (1 + Math.random() * 1.4),
+              max: 52 + Math.random() * 44,
+              r: cell * (0.7 + Math.random() * 0.85),
               c: STEAM[Math.floor(Math.random() * STEAM.length)],
             });
           }
@@ -415,13 +469,13 @@ export default function EbExperience() {
         pf.x += pf.vx;
         pf.y += pf.vy;
         pf.vy *= 0.99;
-        pf.r += 0.16;
-        const lifeA = (1 - pf.age / pf.max) * 0.5;
+        pf.r += 0.12;
+        const lifeA = (1 - pf.age / pf.max) * 0.3;
         ctx.fillStyle = `rgba(${pf.c[0]},${pf.c[1]},${pf.c[2]},${lifeA})`;
         const rr = Math.round(pf.r);
         ctx.fillRect(Math.round(pf.x - rr / 2), Math.round(pf.y - rr / 2), rr, rr);
       }
-      if (puffs.length > 200) puffs.splice(0, puffs.length - 200);
+      if (puffs.length > 140) puffs.splice(0, puffs.length - 140);
     };
     raf = requestAnimationFrame(frame);
 
@@ -480,7 +534,7 @@ export default function EbExperience() {
               <p className="eb-label" data-reveal>
                 LunarForge — Field Log 01
               </p>
-              <h1 className="eb-display mx-auto mt-5 text-[clamp(2.6rem,11vw,6.5rem)]">
+              <h1 className="eb-display mx-auto mt-5 text-[clamp(2.6rem,9.5vw,5.4rem)]">
                 <span ref={line1Ref} className="block">
                   Where dust
                 </span>
