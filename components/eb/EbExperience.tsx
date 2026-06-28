@@ -176,25 +176,8 @@ export default function EbExperience() {
         .to(line1Ref.current, { yPercent: -26, autoAlpha: 0.16, ease: "none" }, 0.4)
         .to(line2Ref.current, { yPercent: -12, ease: "none" }, 0.48);
 
-      // the descending laser blasts the lead apart into drifting dust
-      if (leadChars.length) {
-        hero.to(
-          leadChars,
-          reduce
-            ? { opacity: 0, ease: "none", duration: 0.2 }
-            : {
-                opacity: 0,
-                x: () => gsap.utils.random(-130, 130),
-                y: () => gsap.utils.random(20, 170),
-                rotation: () => gsap.utils.random(-75, 75),
-                scale: 0.5,
-                ease: "power2.in",
-                duration: 0.13,
-                stagger: { amount: 0.05, from: "start" },
-              },
-          0.29
-        );
-      }
+      // NOTE: the lead doesn't shatter here — the canvas layer dissolves it
+      // into real regolith dust as the laser beam crosses each glyph.
 
       // section headlines — char reveal on scroll
       root.querySelectorAll<HTMLElement>("[data-split]").forEach((el) => {
@@ -257,12 +240,16 @@ export default function EbExperience() {
     type Particle = { hx: number; hy: number; tx: number; ty: number; s: number; c: RGB };
     type Amb = { x: number; y: number; vx: number; vy: number };
     type Puff = { x: number; y: number; vx: number; vy: number; age: number; max: number; r: number; c: RGB };
+    type Mote = { x: number; y: number; vx: number; vy: number; age: number; max: number; s: number; c: RGB };
+    type LeadBit = { el: HTMLElement; gx: number; gy: number; done: boolean };
     let particles: Particle[] = [];
     let amb: Amb[] = [];
     let moon: { x: number; y: number; s: number; c: RGB }[] = [];
     let stars: { x: number; y: number; sz: number; tw: number }[] = [];
     let towers: { x: number; topY: number; r: number }[] = [];
     let puffs: Puff[] = [];
+    let motes: Mote[] = [];
+    let leadBits: LeadBit[] = [];
     let cx = 0;
     let surfaceY = 0;
     const rnd = (n: number) => Math.random() * n;
@@ -360,8 +347,30 @@ export default function EbExperience() {
           moon.push({ x, y, s: gb, c: MG[Math.max(0, Math.min(4, idx))] });
         }
       }
+
+      motes = [];
+      measureLead();
     };
+
+    // measure each lead glyph's centre (relative to the stage) so the laser
+    // can dissolve it into dust exactly where the letter sits
+    const measureLead = () => {
+      const sr = stage.getBoundingClientRect();
+      leadBits = Array.from(
+        stage.querySelectorAll<HTMLElement>(".eb-hero-foot .eb-char")
+      ).map((el) => {
+        const b = el.getBoundingClientRect();
+        return {
+          el,
+          gx: b.left - sr.left + b.width / 2,
+          gy: b.top - sr.top + b.height / 2,
+          done: false,
+        };
+      });
+    };
+
     build();
+    if (document.fonts?.ready) document.fonts.ready.then(measureLead);
     const ro = new ResizeObserver(build);
     ro.observe(stage);
 
@@ -466,15 +475,77 @@ export default function EbExperience() {
         ctx.fillRect(Math.round(x), Math.round(y), sz, sz);
       }
 
-      // laser — descends to the ground, then sinks into it (no fade/up)
-      if (p > 0.01 && beamBotY - beamTopY > 1) {
-        const flick = Math.random() > 0.12 ? 1 : 0.3;
-        ctx.fillStyle = `rgba(255,90,5,${0.92 * flick})`;
-        for (let yy = beamTopY; yy < beamBotY; yy += cell) {
-          ctx.fillRect(Math.round(cx) - 1, Math.round(yy), 2, cell - 1);
+      // the descending beam dissolves the floating lead into regolith dust
+      const band = cell * 3.2;
+      for (const bit of leadBits) {
+        const d = beamBotY - bit.gy;
+        if (!reduce && !bit.done && d >= 0) {
+          bit.done = true;
+          const n = 4 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < n; i++) {
+            motes.push({
+              x: bit.gx + (Math.random() - 0.5) * 10,
+              y: bit.gy + (Math.random() - 0.5) * 10,
+              vx: (Math.random() - 0.5) * 1.5,
+              vy: -0.5 - Math.random() * 0.9,
+              age: 0,
+              max: 45 + Math.random() * 50,
+              s: Math.random() < 0.28 ? 2 : 1,
+              c: DUST,
+            });
+          }
+        } else if (bit.done && d < -band) {
+          bit.done = false; // scrolled back above the glyph — re-arm
         }
-        ctx.fillStyle = `rgba(255,150,50,${flick})`;
-        ctx.fillRect(Math.round(cx) - cell / 2, Math.round(beamBotY) - cell / 2, cell, cell);
+        const op = d < 0 ? 1 : d < band ? 1 - d / band : 0;
+        bit.el.style.opacity = String(op);
+      }
+
+      // dust motes — the vaporised text drifting down into the field
+      for (let i = motes.length - 1; i >= 0; i--) {
+        const mo = motes[i];
+        mo.age++;
+        if (mo.age > mo.max) {
+          motes.splice(i, 1);
+          continue;
+        }
+        mo.vy += 0.03;
+        mo.x += mo.vx;
+        mo.y += mo.vy;
+        const la = (1 - mo.age / mo.max) * 0.85;
+        ctx.fillStyle = `rgba(${mo.c[0]},${mo.c[1]},${mo.c[2]},${la})`;
+        ctx.fillRect(Math.round(mo.x), Math.round(mo.y), mo.s, mo.s);
+      }
+      if (motes.length > 400) motes.splice(0, motes.length - 400);
+
+      // laser — a focused beam: hot core + glow, with a burning impact tip
+      if (p > 0.01 && beamBotY - beamTopY > 1) {
+        const flick = 0.86 + Math.random() * 0.14;
+        const bx = Math.round(cx);
+        const bh = beamBotY - beamTopY;
+        ctx.fillStyle = `rgba(255,90,5,${0.08 * flick})`;
+        ctx.fillRect(bx - 9, beamTopY, 18, bh);
+        ctx.fillStyle = `rgba(255,120,40,${0.22 * flick})`;
+        ctx.fillRect(bx - 4, beamTopY, 8, bh);
+        ctx.fillStyle = `rgba(255,226,176,${0.95 * flick})`;
+        ctx.fillRect(bx - 1, beamTopY, 3, bh);
+        // burning impact flare at the beam tip
+        const fr = cell * 2.6 * flick;
+        const g = ctx.createRadialGradient(cx, beamBotY, 0, cx, beamBotY, fr);
+        g.addColorStop(0, "rgba(255,236,196,0.95)");
+        g.addColorStop(0.35, "rgba(255,132,46,0.5)");
+        g.addColorStop(1, "rgba(255,90,5,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, beamBotY, fr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,184,96,0.85)";
+        for (let i = 0; i < 3; i++) {
+          const ox = Math.round(cx + (Math.random() - 0.5) * cell * 3);
+          const oy = Math.round(beamBotY - Math.random() * cell * 1.6);
+          ctx.fillRect(ox, oy, 2, 2);
+        }
+        // regolith kicked up once the beam reaches the ground
         if (descendBot >= 1 && sink < 0.85) {
           ctx.fillStyle = "rgba(216,194,160,0.85)";
           for (let i = 0; i < 4; i++) {
