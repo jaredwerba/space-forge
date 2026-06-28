@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
+import * as THREE from "three";
 import { useEbStore } from "@/lib/ebStore";
-import { buildPlant } from "@/lib/ebPlant";
+import { buildReactor } from "@/lib/eb3d";
 
 const beats = [
   {
@@ -221,139 +222,180 @@ export default function EbExperience() {
     };
   }, []);
 
-  // ---- hero canvas: a laser descends with scroll, strikes the moon
-  //      surface, and the dust forms into the reactor dome from the cut ----
+  // ---- hero scene: a PS2-era low-poly 3D world (three.js). Scroll drives a
+  //      laser down through the floating lead (which dissolves to dust); the
+  //      dust then assembles into a flat-shaded reactor under a fogged sky ----
   useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const finePointer = window.matchMedia("(pointer: fine)").matches;
 
-    let w = 0;
-    let h = 0;
-    let dpr = 1;
-    let cell = 9;
-    type RGB = [number, number, number];
-    type Particle = { hx: number; hy: number; tx: number; ty: number; s: number; c: RGB };
-    type Amb = { x: number; y: number; vx: number; vy: number };
-    type Puff = { x: number; y: number; vx: number; vy: number; age: number; max: number; r: number; c: RGB };
-    type Mote = { x: number; y: number; vx: number; vy: number; age: number; max: number; s: number; c: RGB };
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+    renderer.setClearColor(0x06070e, 1);
+    const SCALE = 0.55; // chunky, PS2-grade internal resolution
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x06070e, 16, 44);
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 140);
+
+    // flat low-poly lighting — warm key upper-left, cool fill + rim
+    const key = new THREE.DirectionalLight(0xfff1e0, 2.3);
+    key.position.set(-5, 7, 4);
+    const fill = new THREE.AmbientLight(0x3a4458, 1.2);
+    const rim = new THREE.DirectionalLight(0x47526e, 0.7);
+    rim.position.set(5, 2, -5);
+    scene.add(key, fill, rim);
+
+    // ---- reactor model + dust-morph targets ----
+    const { group: reactor, meshes, targets, count, radius, height, dispose } =
+      buildReactor();
+    reactor.rotation.y = -0.5;
+    for (const m of meshes) {
+      const mat = m.material as THREE.MeshLambertMaterial;
+      mat.transparent = true;
+      mat.opacity = 0;
+    }
+    scene.add(reactor);
+
+    // dust cloud (child of the reactor so it shares the slow turntable spin)
+    const cur = new Float32Array(count * 3);
+    const home = new Float32Array(count * 3);
+    const cenY = height * 0.5;
+    for (let i = 0; i < count; i++) {
+      const rr = radius * (1.4 + Math.random() * 1.7);
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      home[i * 3] = rr * Math.sin(ph) * Math.cos(th);
+      home[i * 3 + 1] = cenY + rr * Math.cos(ph) * 0.6 + height * 0.4;
+      home[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
+      cur[i * 3] = home[i * 3];
+      cur[i * 3 + 1] = home[i * 3 + 1];
+      cur[i * 3 + 2] = home[i * 3 + 2];
+    }
+    const dustGeo = new THREE.BufferGeometry();
+    dustGeo.setAttribute("position", new THREE.BufferAttribute(cur, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0xb3a98f,
+      size: 0.12,
+      sizeAttenuation: true,
+      transparent: true,
+      depthWrite: false,
+    });
+    const dust = new THREE.Points(dustGeo, dustMat);
+    reactor.add(dust);
+
+    // ---- low-poly cratered moon ground ----
+    const groundGeo = new THREE.PlaneGeometry(80, 80, 26, 26);
+    groundGeo.rotateX(-Math.PI / 2);
+    const gp = groundGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < gp.count; i++) {
+      const x = gp.getX(i);
+      const z = gp.getZ(i);
+      const d = Math.hypot(x, z);
+      const dune = Math.sin(x * 0.24) * Math.cos(z * 0.21) * 0.35;
+      const crater = Math.max(0, 1 - Math.abs(d - 10) / 3) * -0.55;
+      gp.setY(i, dune + crater - 0.05);
+    }
+    groundGeo.computeVertexNormals();
+    const ground = new THREE.Mesh(
+      groundGeo,
+      new THREE.MeshLambertMaterial({ color: 0x8c8e96, flatShading: true })
+    );
+    scene.add(ground);
+
+    // ---- starfield ----
+    const starN = 650;
+    const starPos = new Float32Array(starN * 3);
+    for (let i = 0; i < starN; i++) {
+      const rr = 48 + Math.random() * 28;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      starPos[i * 3] = rr * Math.sin(ph) * Math.cos(th);
+      starPos[i * 3 + 1] = Math.abs(rr * Math.cos(ph)) * 0.85 + 3;
+      starPos[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({
+      color: 0xe8eaf2,
+      size: 0.18,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.9,
+      fog: false,
+    });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // ---- shooting star: a faint streak crossing the far sky as you scroll ----
+    const shootMat = new THREE.MeshBasicMaterial({
+      color: 0xcfe0ff,
+      transparent: true,
+      opacity: 0,
+      fog: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const shoot = new THREE.Mesh(new THREE.BoxGeometry(5, 0.06, 0.06), shootMat);
+    shoot.rotation.z = -0.42;
+    scene.add(shoot);
+
+    // ---- laser beam ----
+    const beamCoreMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0, fog: false });
+    const beamCore = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
+      beamCoreMat
+    );
+    const beamGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xff5a05,
+      transparent: true,
+      opacity: 0.22,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    const beamGlow = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 1, 8),
+      beamGlowMat
+    );
+    const beam = new THREE.Group();
+    beam.add(beamGlow, beamCore);
+    scene.add(beam);
+    const tipLight = new THREE.PointLight(0xff7a1a, 0, 16, 2);
+    scene.add(tipLight);
+    const flareMat = new THREE.MeshBasicMaterial({
+      color: 0xffe7be,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    const flare = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), flareMat);
+    scene.add(flare);
+
+    // ---- lead-glyph dissolve into 3D dust ----
+    type LeadMote = { x: number; y: number; z: number; vx: number; vy: number; age: number; max: number };
     type LeadBit = { el: HTMLElement; gx: number; gy: number; done: boolean };
-    let particles: Particle[] = [];
-    let amb: Amb[] = [];
-    let moon: { x: number; y: number; s: number; c: RGB }[] = [];
-    let stars: { x: number; y: number; sz: number; tw: number }[] = [];
-    let towers: { x: number; topY: number; r: number }[] = [];
-    let puffs: Puff[] = [];
-    let motes: Mote[] = [];
+    const MOTE_MAX = 380;
+    const motePos = new Float32Array(MOTE_MAX * 3);
+    const moteState: LeadMote[] = [];
+    const moteGeo = new THREE.BufferGeometry();
+    moteGeo.setAttribute("position", new THREE.BufferAttribute(motePos, 3));
+    moteGeo.setDrawRange(0, 0);
+    const moteMat = new THREE.PointsMaterial({
+      color: 0xc6b99c,
+      size: 0.14,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    });
+    const moteCloud = new THREE.Points(moteGeo, moteMat);
+    scene.add(moteCloud);
+
     let leadBits: LeadBit[] = [];
-    let cx = 0;
-    let surfaceY = 0;
-    const rnd = (n: number) => Math.random() * n;
-    const DUST: RGB = [170, 164, 150];
-    const STEAM: RGB[] = [
-      [188, 192, 196],
-      [214, 218, 222],
-      [166, 170, 176],
-    ];
-
-    const build = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const r = stage.getBoundingClientRect();
-      w = r.width;
-      h = r.height;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      cx = w / 2;
-      surfaceY = Math.round(h * 0.85);
-
-      // build the detailed nuclear plant; each block becomes a dust particle
-      const plant = buildPlant(cx, surfaceY, w, h);
-      cell = plant.big;
-      towers = plant.towers;
-      particles = plant.blocks.map((b) => ({
-        hx: rnd(w),
-        hy: rnd(surfaceY),
-        tx: b.x,
-        ty: b.y,
-        s: b.s,
-        c: b.c,
-      }));
-      puffs = [];
-
-      const ambCount = Math.min(110, Math.round((w * surfaceY) / 14000));
-      amb = Array.from({ length: ambCount }, () => ({
-        x: rnd(w),
-        y: rnd(surfaceY),
-        vx: (Math.random() - 0.5) * 0.22,
-        vy: -0.04 - Math.random() * 0.16,
-      }));
-
-      // starfield in the night sky
-      stars = [];
-      const starCount = Math.round((w * surfaceY) / 5200);
-      for (let i = 0; i < starCount; i++) {
-        stars.push({
-          x: rnd(w),
-          y: rnd(surfaceY * 0.97),
-          sz: Math.random() < 0.16 ? 2 : 1,
-          tw: Math.random() * 6.28,
-        });
-      }
-
-      // cratered moon foreground — rolling dunes + lit-rim craters
-      moon = [];
-      const MG: RGB[] = [
-        [170, 172, 178], // lit rim / crest
-        [140, 142, 148],
-        [112, 114, 120],
-        [86, 88, 94],
-        [60, 62, 68], // deep pit
-      ];
-      const gb = cell * 2;
-      const gcols = Math.ceil(w / gb) + 1;
-      const grows = Math.ceil((h - surfaceY) / gb) + 1;
-      const craters = Array.from({ length: 6 }, () => ({
-        cx: rnd(w),
-        cy: surfaceY + gb * 1.4 + rnd(h - surfaceY - gb * 1.4),
-        r: gb * (1.5 + Math.random() * 2.3),
-      }));
-      for (let gy = 0; gy < grows; gy++) {
-        for (let gx = 0; gx < gcols; gx++) {
-          const x = gx * gb;
-          const y = surfaceY + gy * gb;
-          const depth = gy / grows;
-          const dune = Math.sin(x * 0.015 + Math.cos(y * 0.028) * 1.3) * 0.5 + 0.5;
-          const v = depth * 0.42 + (1 - dune) * 0.28 + (Math.random() - 0.5) * 0.12;
-          let idx = Math.max(0, Math.min(3, Math.round(v * 3)));
-          for (const cr of craters) {
-            const ddx = x - cr.cx;
-            const ddy = y - cr.cy;
-            const dd = Math.hypot(ddx, ddy);
-            if (dd < cr.r * 0.46) {
-              idx = 4; // deep pit centre
-            } else if (dd < cr.r * 0.82) {
-              idx = 3; // pit floor
-            } else if (dd < cr.r) {
-              const lit = (ddx * -0.6 + ddy * -0.55) / (dd || 1); // upper-left rim
-              idx = lit > 0.15 ? 0 : 2;
-            }
-          }
-          moon.push({ x, y, s: gb, c: MG[Math.max(0, Math.min(4, idx))] });
-        }
-      }
-
-      motes = [];
-      measureLead();
-    };
-
-    // measure each lead glyph's centre (relative to the stage) so the laser
-    // can dissolve it into dust exactly where the letter sits
     const measureLead = () => {
       const sr = stage.getBoundingClientRect();
       leadBits = Array.from(
@@ -367,237 +409,185 @@ export default function EbExperience() {
           done: false,
         };
       });
+      if (reduce) leadBits.forEach((b) => (b.el.style.opacity = "0"));
     };
 
-    build();
-    if (document.fonts?.ready) document.fonts.ready.then(measureLead);
-    const ro = new ResizeObserver(build);
-    ro.observe(stage);
+    const tmpV = new THREE.Vector3();
+    const screenToWorld = (sx: number, sy: number, depth: number) => {
+      tmpV.set((sx / w) * 2 - 1, -((sy / h) * 2 - 1), 0.5);
+      tmpV.unproject(camera);
+      tmpV.sub(camera.position).normalize();
+      return camera.position.clone().add(tmpV.multiplyScalar(depth));
+    };
 
-    const onMove = (e: PointerEvent) => {
+    let w = 0;
+    let h = 0;
+    const resize = () => {
       const r = stage.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = (e.clientY - r.top) / r.height;
-      useEbStore.getState().setPointer(x, y, x >= 0 && y >= 0 && x <= 1 && y <= 1);
+      w = r.width;
+      h = r.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setSize(Math.round(w * SCALE * dpr), Math.round(h * SCALE * dpr), false);
+      camera.aspect = w / h;
+      const vh = (camera.fov * Math.PI) / 180;
+      const distH = (height * 0.6 + 1.2) / Math.tan(vh / 2);
+      const hHalf = Math.atan(Math.tan(vh / 2) * camera.aspect);
+      const distW = (radius + 0.7) / Math.tan(hHalf);
+      camera.userData.dist = Math.max(distH, distW);
+      camera.updateProjectionMatrix();
+      measureLead();
     };
-    if (finePointer) window.addEventListener("pointermove", onMove);
+    resize();
+    if (document.fonts?.ready) document.fonts.ready.then(measureLead);
+    const ro = new ResizeObserver(resize);
+    ro.observe(stage);
 
     let raf = 0;
     let last = 0;
+    const SKY = height * 5.5;
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      if (now - last < 33) return;
+      if (now - last < 18) return;
       last = now;
-      const s = useEbStore.getState();
-      const p = reduce ? 0.9 : Math.min(1, Math.max(0, s.progress));
-      ctx.fillStyle = "#06070e";
-      ctx.fillRect(0, 0, w, h);
-
-      // beam descends to the ground (0 -> 0.5); the plant assembles and the
-      // beam sinks straight into the ground (0.5 -> 0.9)
-      const descendBot = Math.min(1, p / 0.5);
+      const p = reduce ? 0.92 : Math.min(1, Math.max(0, useEbStore.getState().progress));
+      const descend = Math.min(1, p / 0.5);
       const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.4)));
-      const sink = ae;
-      const beamBotY = surfaceY * descendBot;
-      const beamTopY = surfaceY * sink;
 
-      // starfield — faint twinkle in the night sky
-      for (const st of stars) {
-        const ta = 0.5 + 0.5 * Math.sin(now * 0.002 + st.tw);
-        ctx.fillStyle = `rgba(232,234,242,${ta})`;
-        ctx.fillRect(st.x, st.y, st.sz, st.sz);
-      }
-      // cratered moon foreground
-      for (const m of moon) {
-        ctx.fillStyle = `rgb(${m.c[0]},${m.c[1]},${m.c[2]})`;
-        ctx.fillRect(m.x, m.y, m.s, m.s);
-      }
-      ctx.fillStyle = "rgba(18,18,24,0.85)";
-      ctx.fillRect(0, surfaceY, w, 2);
+      // camera — gentle dolly + orbit on scroll for 3D parallax
+      const dist = (camera.userData.dist as number) || 16;
+      const orb = -0.3 + p * 0.4;
+      camera.position.set(
+        Math.sin(orb) * dist,
+        height * (1.0 - p * 0.1),
+        Math.cos(orb) * dist
+      );
+      camera.lookAt(0, height * 1.05, 0);
+      camera.updateMatrixWorld();
 
-      // ambient sky dust, consumed as the plant forms
-      const ambA = (1 - ae) * 0.42;
-      if (ambA > 0.02) {
-        for (const a of amb) {
-          a.x += a.vx;
-          a.y += a.vy;
-          if (a.y < -cell) {
-            a.y = surfaceY;
-            a.x = rnd(w);
-          }
-          if (a.x < -cell) a.x = w + cell;
-          if (a.x > w + cell) a.x = -cell;
-          let dx = a.x;
-          let dy = a.y;
-          if (finePointer && s.pointer) {
-            const ddx = a.x - s.px * w;
-            const ddy = a.y - s.py * h;
-            const d2 = ddx * ddx + ddy * ddy;
-            if (d2 < 16000) {
-              const f = (1 - d2 / 16000) * 22 * (1 - ae);
-              const d = Math.sqrt(d2) || 1;
-              dx += (ddx / d) * f;
-              dy += (ddy / d) * f;
+      // reactor — fade the solid model in as the dust lands. Rotation is
+      // scroll-driven so it swings into a clear 3/4 view (both towers) by the
+      // end, with a subtle idle drift so it always reads as a 3D model.
+      reactor.rotation.y = -0.8 + p * 0.45 + Math.sin(now * 0.0002) * 0.05;
+      const solid = smooth(Math.min(1, Math.max(0, (ae - 0.55) / 0.4)));
+      for (const m of meshes) (m.material as THREE.MeshLambertMaterial).opacity = solid;
+
+      // dust — scattered home -> surface target, fading into the solid mesh
+      dustMat.opacity = 0.85 * (1 - solid);
+      dust.visible = dustMat.opacity > 0.02;
+      if (dust.visible) {
+        const j = (1 - ae) * 0.22;
+        for (let i = 0; i < count; i++) {
+          const k = i * 3;
+          cur[k] = lerp(home[k], targets[k], ae) + (Math.random() - 0.5) * j;
+          cur[k + 1] = lerp(home[k + 1], targets[k + 1], ae) + (Math.random() - 0.5) * j;
+          cur[k + 2] = lerp(home[k + 2], targets[k + 2], ae) + (Math.random() - 0.5) * j;
+        }
+        dustGeo.attributes.position.needsUpdate = true;
+      }
+
+      // laser — descends to the surface (0 -> 0.5), then gone
+      if (p > 0.01 && descend < 1) {
+        const tipY = SKY * (1 - descend);
+        const len = Math.max(0.01, SKY - tipY);
+        beam.position.set(0, (SKY + tipY) / 2, 0);
+        beam.scale.set(1, len, 1);
+        beam.visible = true;
+        const flick = 0.85 + Math.random() * 0.15;
+        beamCoreMat.opacity = flick;
+        flare.position.set(0, tipY, 0);
+        flareMat.opacity = 0.9 * flick;
+        flare.scale.setScalar(0.7 + Math.random() * 0.3);
+        tipLight.position.set(0, tipY + 0.4, 0);
+        tipLight.intensity = 3.2 * flick;
+      } else {
+        beam.visible = false;
+        flareMat.opacity = 0;
+        tipLight.intensity = 0;
+      }
+
+      // lead dissolve — the beam tip's screen-Y crosses each glyph -> dust
+      if (!reduce && leadBits.length) {
+        tmpV.set(0, SKY * (1 - descend), 0).project(camera);
+        const beamScreenY = (-tmpV.y * 0.5 + 0.5) * h;
+        const band = 26;
+        for (const bit of leadBits) {
+          const d = beamScreenY - bit.gy;
+          if (!bit.done && d >= 0 && d < 600) {
+            bit.done = true;
+            const wp = screenToWorld(bit.gx, bit.gy, dist * 0.7);
+            for (let n = 0; n < 4 && moteState.length < MOTE_MAX; n++) {
+              moteState.push({
+                x: wp.x + (Math.random() - 0.5) * 0.3,
+                y: wp.y + (Math.random() - 0.5) * 0.3,
+                z: wp.z + (Math.random() - 0.5) * 0.3,
+                vx: (Math.random() - 0.5) * 0.05,
+                vy: 0.02 + Math.random() * 0.03,
+                age: 0,
+                max: 60 + Math.random() * 50,
+              });
             }
+          } else if (bit.done && d < -band) {
+            bit.done = false;
           }
-          ctx.fillStyle = `rgba(150,145,132,${ambA})`;
-          ctx.fillRect(Math.round(dx), Math.round(dy), cell - 2, cell - 2);
+          bit.el.style.opacity = String(d < 0 ? 1 : d < band ? 1 - d / band : 0);
         }
       }
 
-      // particles assembling into the plant — gray dust -> shaded blocks
-      for (const pt of particles) {
-        let x = lerp(pt.hx, pt.tx, ae);
-        let y = lerp(pt.hy, pt.ty, ae);
-        if (ae < 0.97) {
-          const j = (1 - ae) * cell * 0.7;
-          x += (Math.random() - 0.5) * j;
-          y += (Math.random() - 0.5) * j;
-        }
-        if (finePointer && s.pointer && ae < 0.45) {
-          const ddx = x - s.px * w;
-          const ddy = y - s.py * h;
-          const d2 = ddx * ddx + ddy * ddy;
-          if (d2 < 13000) {
-            const f = (1 - d2 / 13000) * 20 * (1 - ae);
-            const dd = Math.sqrt(d2) || 1;
-            x += (ddx / dd) * f;
-            y += (ddy / dd) * f;
-          }
-        }
-        const cr = Math.round(lerp(DUST[0], pt.c[0], ae));
-        const cg = Math.round(lerp(DUST[1], pt.c[1], ae));
-        const cb = Math.round(lerp(DUST[2], pt.c[2], ae));
-        const sz = Math.ceil(lerp(Math.max(2, cell * 0.5), pt.s, ae));
-        const a = 0.42 + ae * 0.55;
-        ctx.fillStyle = `rgba(${cr},${cg},${cb},${a})`;
-        ctx.fillRect(Math.round(x), Math.round(y), sz, sz);
-      }
-
-      // the descending beam dissolves the floating lead into regolith dust
-      const band = cell * 3.2;
-      for (const bit of leadBits) {
-        const d = beamBotY - bit.gy;
-        if (!reduce && !bit.done && d >= 0) {
-          bit.done = true;
-          const n = 4 + Math.floor(Math.random() * 3);
-          for (let i = 0; i < n; i++) {
-            motes.push({
-              x: bit.gx + (Math.random() - 0.5) * 10,
-              y: bit.gy + (Math.random() - 0.5) * 10,
-              vx: (Math.random() - 0.5) * 1.5,
-              vy: -0.5 - Math.random() * 0.9,
-              age: 0,
-              max: 45 + Math.random() * 50,
-              s: Math.random() < 0.28 ? 2 : 1,
-              c: DUST,
-            });
-          }
-        } else if (bit.done && d < -band) {
-          bit.done = false; // scrolled back above the glyph — re-arm
-        }
-        const op = d < 0 ? 1 : d < band ? 1 - d / band : 0;
-        bit.el.style.opacity = String(op);
-      }
-
-      // dust motes — the vaporised text drifting down into the field
-      for (let i = motes.length - 1; i >= 0; i--) {
-        const mo = motes[i];
+      // update + upload the lead dust motes
+      for (let i = moteState.length - 1; i >= 0; i--) {
+        const mo = moteState[i];
         mo.age++;
         if (mo.age > mo.max) {
-          motes.splice(i, 1);
+          moteState.splice(i, 1);
           continue;
         }
-        mo.vy += 0.03;
+        mo.vy -= 0.0016;
         mo.x += mo.vx;
         mo.y += mo.vy;
-        const la = (1 - mo.age / mo.max) * 0.85;
-        ctx.fillStyle = `rgba(${mo.c[0]},${mo.c[1]},${mo.c[2]},${la})`;
-        ctx.fillRect(Math.round(mo.x), Math.round(mo.y), mo.s, mo.s);
       }
-      if (motes.length > 400) motes.splice(0, motes.length - 400);
+      for (let i = 0; i < moteState.length; i++) {
+        const mo = moteState[i];
+        motePos[i * 3] = mo.x;
+        motePos[i * 3 + 1] = mo.y;
+        motePos[i * 3 + 2] = mo.z;
+      }
+      moteGeo.setDrawRange(0, moteState.length);
+      moteGeo.attributes.position.needsUpdate = true;
 
-      // laser — a focused beam: hot core + glow, with a burning impact tip
-      if (p > 0.01 && beamBotY - beamTopY > 1) {
-        const flick = 0.86 + Math.random() * 0.14;
-        const bx = Math.round(cx);
-        const bh = beamBotY - beamTopY;
-        ctx.fillStyle = `rgba(255,90,5,${0.08 * flick})`;
-        ctx.fillRect(bx - 9, beamTopY, 18, bh);
-        ctx.fillStyle = `rgba(255,120,40,${0.22 * flick})`;
-        ctx.fillRect(bx - 4, beamTopY, 8, bh);
-        ctx.fillStyle = `rgba(255,226,176,${0.95 * flick})`;
-        ctx.fillRect(bx - 1, beamTopY, 3, bh);
-        // burning impact flare at the beam tip
-        const fr = cell * 2.6 * flick;
-        const g = ctx.createRadialGradient(cx, beamBotY, 0, cx, beamBotY, fr);
-        g.addColorStop(0, "rgba(255,236,196,0.95)");
-        g.addColorStop(0.35, "rgba(255,132,46,0.5)");
-        g.addColorStop(1, "rgba(255,90,5,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(cx, beamBotY, fr, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(255,184,96,0.85)";
-        for (let i = 0; i < 3; i++) {
-          const ox = Math.round(cx + (Math.random() - 0.5) * cell * 3);
-          const oy = Math.round(beamBotY - Math.random() * cell * 1.6);
-          ctx.fillRect(ox, oy, 2, 2);
-        }
-        // regolith kicked up once the beam reaches the ground
-        if (descendBot >= 1 && sink < 0.85) {
-          ctx.fillStyle = "rgba(216,194,160,0.85)";
-          for (let i = 0; i < 4; i++) {
-            const ox = Math.round(cx + (Math.random() - 0.5) * cell * 4);
-            const oy = Math.round(surfaceY - Math.random() * cell * 2.5);
-            ctx.fillRect(ox, oy, cell - 2, cell - 2);
-          }
-        }
-      }
+      // shooting star — faint, crosses the far sky a few times across the scroll
+      const phase = (p * 2.2) % 1;
+      shoot.position.set(-28 + phase * 56, 17 - phase * 9, -36);
+      shootMat.opacity = Math.sin(phase * Math.PI) * 0.5;
 
-      // animated steam billowing from each tower top once the plant stands
-      if (ae > 0.82) {
-        const intensity = (ae - 0.82) / 0.18;
-        for (const tw of towers) {
-          if (Math.random() < 0.22 * intensity) {
-            puffs.push({
-              x: tw.x + (Math.random() - 0.5) * tw.r,
-              y: tw.topY - cell,
-              vx: (Math.random() - 0.5) * 0.32,
-              vy: -(0.3 + Math.random() * 0.42),
-              age: 0,
-              max: 52 + Math.random() * 44,
-              r: cell * (0.7 + Math.random() * 0.85),
-              c: STEAM[Math.floor(Math.random() * STEAM.length)],
-            });
-          }
-        }
-      }
-      for (let i = puffs.length - 1; i >= 0; i--) {
-        const pf = puffs[i];
-        pf.age++;
-        if (pf.age > pf.max) {
-          puffs.splice(i, 1);
-          continue;
-        }
-        pf.x += pf.vx;
-        pf.y += pf.vy;
-        pf.vy *= 0.99;
-        pf.r += 0.12;
-        const lifeA = (1 - pf.age / pf.max) * 0.3;
-        ctx.fillStyle = `rgba(${pf.c[0]},${pf.c[1]},${pf.c[2]},${lifeA})`;
-        const rr = Math.round(pf.r);
-        ctx.fillRect(Math.round(pf.x - rr / 2), Math.round(pf.y - rr / 2), rr, rr);
-      }
-      if (puffs.length > 140) puffs.splice(0, puffs.length - 140);
+      // subtle star twinkle
+      starMat.opacity = 0.7 + 0.2 * Math.sin(now * 0.001);
+
+      renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      if (finePointer) window.removeEventListener("pointermove", onMove);
+      dispose();
+      dustGeo.dispose();
+      dustMat.dispose();
+      moteGeo.dispose();
+      moteMat.dispose();
+      groundGeo.dispose();
+      (ground.material as THREE.Material).dispose();
+      starGeo.dispose();
+      starMat.dispose();
+      shoot.geometry.dispose();
+      shootMat.dispose();
+      beamCore.geometry.dispose();
+      beamCoreMat.dispose();
+      beamGlow.geometry.dispose();
+      beamGlowMat.dispose();
+      flare.geometry.dispose();
+      flareMat.dispose();
+      renderer.dispose();
     };
   }, []);
 
