@@ -261,14 +261,13 @@ export default function EbExperience() {
     // dust cloud (child of the reactor so it shares the slow turntable spin)
     const cur = new Float32Array(count * 3);
     const home = new Float32Array(count * 3);
-    const cenY = height * 0.5;
+    // dust starts as a flat layer on the ground — kicked up by the strike
     for (let i = 0; i < count; i++) {
-      const rr = radius * (1.4 + Math.random() * 1.7);
-      const th = Math.random() * Math.PI * 2;
-      const ph = Math.acos(2 * Math.random() - 1);
-      home[i * 3] = rr * Math.sin(ph) * Math.cos(th);
-      home[i * 3 + 1] = cenY + rr * Math.cos(ph) * 0.6 + height * 0.4;
-      home[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
+      const a = Math.random() * Math.PI * 2;
+      const rr = Math.sqrt(Math.random()) * radius * 1.05;
+      home[i * 3] = Math.cos(a) * rr;
+      home[i * 3 + 1] = Math.random() * 0.5;
+      home[i * 3 + 2] = Math.sin(a) * rr;
       cur[i * 3] = home[i * 3];
       cur[i * 3 + 1] = home[i * 3 + 1];
       cur[i * 3 + 2] = home[i * 3 + 2];
@@ -472,8 +471,10 @@ export default function EbExperience() {
       const solid = smooth(Math.min(1, Math.max(0, (ae - 0.55) / 0.4)));
       for (const m of meshes) (m.material as THREE.MeshLambertMaterial).opacity = solid;
 
-      // dust — scattered home -> surface target, fading into the solid mesh
-      dustMat.opacity = 0.85 * (1 - solid);
+      // dust — hidden until the laser strikes (p~0.5); then it erupts from the
+      // ground and rises, self-assembling onto the reactor surface
+      const airborne = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.06)));
+      dustMat.opacity = 0.85 * airborne * (1 - solid);
       dust.visible = dustMat.opacity > 0.02;
       if (dust.visible) {
         const j = (1 - ae) * 0.22;
@@ -502,8 +503,18 @@ export default function EbExperience() {
         tipLight.intensity = 3.2 * flick;
       } else {
         beam.visible = false;
-        flareMat.opacity = 0;
-        tipLight.intensity = 0;
+        // ground impact flash — the strike that kicks the dust into the air
+        const impact = Math.max(0, 1 - (p - 0.5) / 0.09);
+        if (impact > 0.01) {
+          flare.position.set(0, 0.3, 0);
+          flareMat.opacity = impact * 0.95;
+          flare.scale.setScalar(1 + impact * 1.8);
+          tipLight.position.set(0, 0.7, 0);
+          tipLight.intensity = impact * 4.5;
+        } else {
+          flareMat.opacity = 0;
+          tipLight.intensity = 0;
+        }
       }
 
       // lead dissolve — the beam tip's screen-Y crosses each glyph -> dust
@@ -555,10 +566,21 @@ export default function EbExperience() {
       moteGeo.setDrawRange(0, moteState.length);
       moteGeo.attributes.position.needsUpdate = true;
 
-      // shooting star — faint, crosses the far sky a few times across the scroll
-      const phase = (p * 2.2) % 1;
-      shoot.position.set(-28 + phase * 56, 17 - phase * 9, -36);
-      shootMat.opacity = Math.sin(phase * Math.PI) * 0.5;
+      // shooting star — only once the reactor is rendered; periodic faint streak
+      if (solid > 0.85) {
+        const cyc = (now * 0.00008) % 1; // ~12.5s period
+        const sp = cyc < 0.18 ? cyc / 0.18 : -1;
+        if (sp >= 0) {
+          shoot.visible = true;
+          shoot.position.set(-30 + sp * 62, 21 - sp * 11, -38);
+          shootMat.opacity = Math.sin(sp * Math.PI) * 0.55 * solid;
+        } else {
+          shoot.visible = false;
+        }
+      } else {
+        shoot.visible = false;
+        shootMat.opacity = 0;
+      }
 
       // subtle star twinkle
       starMat.opacity = 0.7 + 0.2 * Math.sin(now * 0.001);
