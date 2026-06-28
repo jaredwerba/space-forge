@@ -139,12 +139,13 @@
   z-index: 2;
 }
 
-/* fallback so the headline is centered before JS scrub takes over */
+/* lead line floats in space, in the path of the descending laser */
 .eb-hero-foot {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: clamp(1.5rem, 5vh, 3rem);
+  top: 55%;
+  transform: translateY(-50%);
   z-index: 2;
 }
 

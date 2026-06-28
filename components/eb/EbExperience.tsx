@@ -92,6 +92,7 @@ export default function EbExperience() {
   const line1Ref = useRef<HTMLSpanElement>(null);
   const line2Ref = useRef<HTMLSpanElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
+  const leadRef = useRef<HTMLParagraphElement>(null);
   const beamRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLDivElement>(null);
@@ -148,6 +149,19 @@ export default function EbExperience() {
         });
       }
 
+      // lead line — floats in space, then the laser shatters it into dust.
+      // Chars' opacity is owned by the scrub shatter; the container handles
+      // the load fade so the two never fight over the same property.
+      const leadChars = leadRef.current ? splitChars(leadRef.current) : [];
+      gsap.set(leadChars, { opacity: 1 });
+      if (!reduce) {
+        gsap.fromTo(
+          footRef.current,
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.8, ease: "none", delay: 0.9 }
+        );
+      }
+
       // hero scrub timeline — scroll drives the canvas progress + text drift
       const hero = gsap.timeline({
         scrollTrigger: {
@@ -159,9 +173,28 @@ export default function EbExperience() {
         },
       });
       hero
-        .to(footRef.current, { autoAlpha: 0, y: -14, ease: "none" }, 0.18)
         .to(line1Ref.current, { yPercent: -26, autoAlpha: 0.16, ease: "none" }, 0.4)
         .to(line2Ref.current, { yPercent: -12, ease: "none" }, 0.48);
+
+      // the descending laser blasts the lead apart into drifting dust
+      if (leadChars.length) {
+        hero.to(
+          leadChars,
+          reduce
+            ? { opacity: 0, ease: "none", duration: 0.2 }
+            : {
+                opacity: 0,
+                x: () => gsap.utils.random(-130, 130),
+                y: () => gsap.utils.random(20, 170),
+                rotation: () => gsap.utils.random(-75, 75),
+                scale: 0.5,
+                ease: "power2.in",
+                duration: 0.13,
+                stagger: { amount: 0.05, from: "start" },
+              },
+          0.29
+        );
+      }
 
       // section headlines — char reveal on scroll
       root.querySelectorAll<HTMLElement>("[data-split]").forEach((el) => {
@@ -556,7 +589,10 @@ export default function EbExperience() {
             </div>
 
             <div ref={footRef} className="eb-hero-foot eb-wrap">
-              <p className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center">
+              <p
+                ref={leadRef}
+                className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center"
+              >
                 A field record of building the first reactor housing on the Moon —
                 from regolith, by laser.
               </p>
