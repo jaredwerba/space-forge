@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Mono,
   Inter,
+  Pixelify_Sans,
   Space_Grotesk,
   Space_Mono,
   Tiny5,
@@ -24,11 +25,17 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
-// /neo type system: Pixelify Sans headings + Space Mono pairing
+// /neo type system: Tiny5 pixel headings + Space Mono pairing
 const tiny5 = Tiny5({
   variable: "--font-pixel",
   subsets: ["latin"],
   weight: "400",
+});
+
+// /eb hero display — Pixelify Sans (variable; weight set in CSS)
+const pixelify = Pixelify_Sans({
+  variable: "--font-pixelify",
+  subsets: ["latin"],
 });
 
 const spaceMono = Space_Mono({
@@ -62,7 +69,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${tiny5.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${tiny5.variable} ${pixelify.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>

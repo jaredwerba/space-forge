@@ -128,14 +128,25 @@ export default function EbExperience() {
       const l1 = line1Ref.current ? splitChars(line1Ref.current) : [];
       const l2 = line2Ref.current ? splitChars(line2Ref.current) : [];
 
-      // full headline — assembles from dust on load
-      gsap.to([...l1, ...l2], {
-        opacity: 1,
-        duration: 0.5,
-        ease: "none",
-        delay: 0.3,
-        stagger: { amount: 0.8, from: "random" },
-      });
+      // pixel headline — each glyph flickers and pops in from the dust
+      const heroChars = [...l1, ...l2];
+      if (reduce) {
+        gsap.set(heroChars, { opacity: 1 });
+      } else {
+        gsap.set(heroChars, {
+          opacity: 0,
+          scale: 0.4,
+          transformOrigin: "50% 100%",
+        });
+        gsap.to(heroChars, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.55,
+          ease: "steps(5)",
+          delay: 0.25,
+          stagger: { amount: 1.1, from: "random" },
+        });
+      }
 
       // hero scrub timeline — scroll drives the canvas progress + text drift
       const hero = gsap.timeline({
