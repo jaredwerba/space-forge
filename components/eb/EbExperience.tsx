@@ -208,7 +208,24 @@ export default function EbExperience() {
       });
     }, root);
 
-    if (reduce) lenis.destroy();
+    // reduced motion: drop the smooth-scroll engine, and drive the progress
+    // bar from native scroll (otherwise it would freeze at 0%)
+    let onNativeScroll: (() => void) | null = null;
+    if (reduce) {
+      gsap.ticker.remove(tick);
+      lenis.destroy();
+      onNativeScroll = () => {
+        const limit = document.documentElement.scrollHeight - window.innerHeight || 1;
+        const p = Math.min(1, Math.max(0, window.scrollY / limit));
+        const pct = `${(p * 100).toFixed(2)}%`;
+        if (beamRef.current) beamRef.current.style.width = pct;
+        if (tipRef.current) tipRef.current.style.left = pct;
+        if (numRef.current)
+          numRef.current.textContent = `${String(Math.round(p * 100)).padStart(2, "0")}%`;
+      };
+      window.addEventListener("scroll", onNativeScroll, { passive: true });
+      onNativeScroll();
+    }
 
     // expose store + lenis for debugging / scene tuning
     (window as unknown as { __eb?: typeof useEbStore }).__eb = useEbStore;
@@ -217,6 +234,7 @@ export default function EbExperience() {
     return () => {
       ctx.revert();
       gsap.ticker.remove(tick);
+      if (onNativeScroll) window.removeEventListener("scroll", onNativeScroll);
       lenis.destroy();
       root.classList.remove("eb-js");
     };
@@ -380,6 +398,7 @@ export default function EbExperience() {
     const MOTE_MAX = 380;
     const motePos = new Float32Array(MOTE_MAX * 3);
     const moteState: LeadMote[] = [];
+    let motePrevLen = 0;
     const moteGeo = new THREE.BufferGeometry();
     moteGeo.setAttribute("position", new THREE.BufferAttribute(motePos, 3));
     moteGeo.setDrawRange(0, 0);
@@ -397,6 +416,7 @@ export default function EbExperience() {
     let leadBits: LeadBit[] = [];
     const measureLead = () => {
       const sr = stage.getBoundingClientRect();
+      const prev = new Map(leadBits.map((b) => [b.el, b.done]));
       leadBits = Array.from(
         stage.querySelectorAll<HTMLElement>(".eb-hero-foot .eb-char")
       ).map((el) => {
@@ -405,24 +425,30 @@ export default function EbExperience() {
           el,
           gx: b.left - sr.left + b.width / 2,
           gy: b.top - sr.top + b.height / 2,
-          done: false,
+          done: prev.get(el) ?? false, // keep dissolve state across re-measure
         };
       });
-      if (reduce) leadBits.forEach((b) => (b.el.style.opacity = "0"));
+      // CSS forces .eb-char opacity:1 !important under reduced motion, so hide
+      // with priority
+      if (reduce) {
+        leadBits.forEach((b) => b.el.style.setProperty("opacity", "0", "important"));
+      }
     };
 
     const tmpV = new THREE.Vector3();
+    const tmpW = new THREE.Vector3();
     const screenToWorld = (sx: number, sy: number, depth: number) => {
       tmpV.set((sx / w) * 2 - 1, -((sy / h) * 2 - 1), 0.5);
       tmpV.unproject(camera);
       tmpV.sub(camera.position).normalize();
-      return camera.position.clone().add(tmpV.multiplyScalar(depth));
+      return tmpW.copy(camera.position).add(tmpV.multiplyScalar(depth));
     };
 
     let w = 0;
     let h = 0;
     const resize = () => {
       const r = stage.getBoundingClientRect();
+      if (!r.width || !r.height) return; // avoid NaN projection on a 0x0 stage
       w = r.width;
       h = r.height;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -488,7 +514,7 @@ export default function EbExperience() {
       }
 
       // laser — descends to the surface (0 -> 0.5), then gone
-      if (p > 0.01 && descend < 1) {
+      if (descend < 1) {
         const tipY = SKY * (1 - descend);
         const len = Math.max(0.01, SKY - tipY);
         beam.position.set(0, (SKY + tipY) / 2, 0);
@@ -503,8 +529,9 @@ export default function EbExperience() {
         tipLight.intensity = 3.2 * flick;
       } else {
         beam.visible = false;
-        // ground impact flash — the strike that kicks the dust into the air
-        const impact = Math.max(0, 1 - (p - 0.5) / 0.09);
+        // ground impact flash — the strike that kicks the dust into the air.
+        // (only reachable for p>=0.5 since descend>=1, but clamp defensively)
+        const impact = Math.min(1, Math.max(0, 1 - (p - 0.5) / 0.09));
         if (impact > 0.01) {
           flare.position.set(0, 0.3, 0);
           flareMat.opacity = impact * 0.95;
@@ -524,7 +551,7 @@ export default function EbExperience() {
         const band = 26;
         for (const bit of leadBits) {
           const d = beamScreenY - bit.gy;
-          if (!bit.done && d >= 0 && d < 600) {
+          if (!bit.done && d >= 0) {
             bit.done = true;
             const wp = screenToWorld(bit.gx, bit.gy, dist * 0.7);
             for (let n = 0; n < 4 && moteState.length < MOTE_MAX; n++) {
@@ -557,23 +584,28 @@ export default function EbExperience() {
         mo.x += mo.vx;
         mo.y += mo.vy;
       }
-      for (let i = 0; i < moteState.length; i++) {
-        const mo = moteState[i];
-        motePos[i * 3] = mo.x;
-        motePos[i * 3 + 1] = mo.y;
-        motePos[i * 3 + 2] = mo.z;
+      // only re-upload the mote buffer when there are motes (or to clear once)
+      if (moteState.length || motePrevLen) {
+        for (let i = 0; i < moteState.length; i++) {
+          const mo = moteState[i];
+          motePos[i * 3] = mo.x;
+          motePos[i * 3 + 1] = mo.y;
+          motePos[i * 3 + 2] = mo.z;
+        }
+        moteGeo.setDrawRange(0, moteState.length);
+        moteGeo.attributes.position.needsUpdate = true;
+        motePrevLen = moteState.length;
       }
-      moteGeo.setDrawRange(0, moteState.length);
-      moteGeo.attributes.position.needsUpdate = true;
 
       // shooting star — only once the reactor is rendered; periodic faint streak
       if (solid > 0.85) {
-        const cyc = (now * 0.00008) % 1; // ~12.5s period
-        const sp = cyc < 0.18 ? cyc / 0.18 : -1;
+        const cyc = (now * 0.00012) % 1; // ~8.3s period
+        const sp = cyc < 0.22 ? cyc / 0.22 : -1; // streak across ~1.8s
         if (sp >= 0) {
           shoot.visible = true;
-          shoot.position.set(-30 + sp * 62, 21 - sp * 11, -38);
-          shootMat.opacity = Math.sin(sp * Math.PI) * 0.55 * solid;
+          // path kept mostly on-screen in the upper sky
+          shoot.position.set(-18 + sp * 36, 15 - sp * 7, -34);
+          shootMat.opacity = Math.sin(sp * Math.PI) * 0.6 * solid;
         } else {
           shoot.visible = false;
         }
