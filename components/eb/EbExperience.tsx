@@ -239,7 +239,7 @@ export default function EbExperience() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       cx = w / 2;
-      surfaceY = Math.round(h * 0.75);
+      surfaceY = Math.round(h * 0.85);
 
       // build the detailed nuclear plant; each block becomes a dust particle
       const plant = buildPlant(cx, surfaceY, w, h);
