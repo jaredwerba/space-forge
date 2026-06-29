@@ -266,11 +266,10 @@ export default function EbExperience() {
     scene.add(key, fill, rim);
 
     // ---- reactor model + dust-morph targets ----
-    const { group: reactor, meshes, targets, count, radius, height, dispose } =
+    const { group: reactor, meshes, targets, count, radius, height, towerTops, dispose } =
       buildReactor();
-    reactor.rotation.y = -0.5;
     for (const m of meshes) {
-      const mat = m.material as THREE.MeshLambertMaterial;
+      const mat = m.material as THREE.Material;
       mat.transparent = true;
       mat.opacity = 0;
     }
@@ -413,6 +412,26 @@ export default function EbExperience() {
     const moteCloud = new THREE.Points(moteGeo, moteMat);
     scene.add(moteCloud);
 
+    // ---- cooling-tower steam (drifts up once the reactor is running) ----
+    type Steam = { x: number; y: number; z: number; vx: number; vy: number; vz: number; age: number; max: number };
+    const STEAM_MAX = 280;
+    const steamPos = new Float32Array(STEAM_MAX * 3);
+    const steamState: Steam[] = [];
+    let steamPrevLen = 0;
+    const steamGeo = new THREE.BufferGeometry();
+    steamGeo.setAttribute("position", new THREE.BufferAttribute(steamPos, 3));
+    steamGeo.setDrawRange(0, 0);
+    const steamMat = new THREE.PointsMaterial({
+      color: 0xdfe3ea,
+      size: 0.42,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false,
+    });
+    const steamCloud = new THREE.Points(steamGeo, steamMat);
+    scene.add(steamCloud);
+
     let leadBits: LeadBit[] = [];
     const measureLead = () => {
       const sr = stage.getBoundingClientRect();
@@ -477,25 +496,27 @@ export default function EbExperience() {
       last = now;
       const p = reduce ? 0.92 : Math.min(1, Math.max(0, useEbStore.getState().progress));
       const descend = Math.min(1, p / 0.5);
-      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.4)));
+      // dust assembles 0.5 -> 0.7, then the reactor spins a full turn 0.7 -> 1
+      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.2)));
+      const spin = Math.min(1, Math.max(0, (p - 0.7) / 0.3));
 
-      // camera — gentle dolly + orbit on scroll for 3D parallax
+      // camera — dolly/orbit into place during assembly, then hold for the spin
       const dist = (camera.userData.dist as number) || 16;
-      const orb = -0.3 + p * 0.4;
+      const cp = Math.min(p, 0.7) / 0.7;
+      const orb = -0.3 + cp * 0.35;
       camera.position.set(
         Math.sin(orb) * dist,
-        height * (1.0 - p * 0.1),
+        height * (1.0 - cp * 0.1),
         Math.cos(orb) * dist
       );
       camera.lookAt(0, height * 1.05, 0);
       camera.updateMatrixWorld();
 
-      // reactor — fade the solid model in as the dust lands. Rotation is
-      // scroll-driven so it swings into a clear 3/4 view (both towers) by the
-      // end, with a subtle idle drift so it always reads as a 3D model.
-      reactor.rotation.y = -0.8 + p * 0.45 + Math.sin(now * 0.0002) * 0.05;
+      // reactor — fades in as the dust lands, swings to a 3/4 view, then once
+      // rendered a full 360° turntable spin driven by continued scroll-down
+      reactor.rotation.y = -0.35 - (1 - ae) * 0.5 + spin * Math.PI * 2;
       const solid = smooth(Math.min(1, Math.max(0, (ae - 0.55) / 0.4)));
-      for (const m of meshes) (m.material as THREE.MeshLambertMaterial).opacity = solid;
+      for (const m of meshes) (m.material as THREE.Material).opacity = solid;
 
       // dust — hidden until the laser strikes (p~0.5); then it erupts from the
       // ground and rises, self-assembling onto the reactor surface
@@ -614,6 +635,50 @@ export default function EbExperience() {
         shootMat.opacity = 0;
       }
 
+      // cooling-tower steam — emits from the (rotating) tower tops once running
+      if (solid > 0.6) {
+        const cos = Math.cos(reactor.rotation.y);
+        const sin = Math.sin(reactor.rotation.y);
+        for (const t of towerTops) {
+          if (Math.random() < 0.5 * solid && steamState.length < STEAM_MAX) {
+            steamState.push({
+              x: t.x * cos + t.z * sin + (Math.random() - 0.5) * 0.3,
+              y: t.y - 0.1,
+              z: -t.x * sin + t.z * cos + (Math.random() - 0.5) * 0.3,
+              vx: (Math.random() - 0.5) * 0.012,
+              vy: 0.018 + Math.random() * 0.022,
+              vz: (Math.random() - 0.5) * 0.012,
+              age: 0,
+              max: 70 + Math.random() * 70,
+            });
+          }
+        }
+      }
+      for (let i = steamState.length - 1; i >= 0; i--) {
+        const st = steamState[i];
+        st.age++;
+        if (st.age > st.max) {
+          steamState.splice(i, 1);
+          continue;
+        }
+        st.vy *= 0.99;
+        st.x += st.vx;
+        st.y += st.vy;
+        st.z += st.vz;
+      }
+      if (steamState.length || steamPrevLen) {
+        for (let i = 0; i < steamState.length; i++) {
+          const st = steamState[i];
+          steamPos[i * 3] = st.x;
+          steamPos[i * 3 + 1] = st.y;
+          steamPos[i * 3 + 2] = st.z;
+        }
+        steamGeo.setDrawRange(0, steamState.length);
+        steamGeo.attributes.position.needsUpdate = true;
+        steamPrevLen = steamState.length;
+      }
+      steamMat.opacity = 0.5 * solid;
+
       // subtle star twinkle
       starMat.opacity = 0.7 + 0.2 * Math.sin(now * 0.001);
 
@@ -629,6 +694,8 @@ export default function EbExperience() {
       dustMat.dispose();
       moteGeo.dispose();
       moteMat.dispose();
+      steamGeo.dispose();
+      steamMat.dispose();
       groundGeo.dispose();
       (ground.material as THREE.Material).dispose();
       starGeo.dispose();
