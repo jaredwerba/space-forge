@@ -528,12 +528,26 @@ export default function EbExperience() {
     const steamGeo = new THREE.BufferGeometry();
     steamGeo.setAttribute("position", new THREE.BufferAttribute(steamPos, 3));
     steamGeo.setDrawRange(0, 0);
+    // soft radial sprite so puffs read as vapour, not raw square points
+    const puffCanvas = document.createElement("canvas");
+    puffCanvas.width = puffCanvas.height = 64;
+    const pctx = puffCanvas.getContext("2d");
+    if (pctx) {
+      const grad = pctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+      grad.addColorStop(0, "rgba(255,255,255,0.9)");
+      grad.addColorStop(0.55, "rgba(255,255,255,0.4)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      pctx.fillStyle = grad;
+      pctx.fillRect(0, 0, 64, 64);
+    }
+    const steamTex = new THREE.CanvasTexture(puffCanvas);
     const steamMat = new THREE.PointsMaterial({
       color: 0xdfe3ea,
-      size: 0.42,
+      size: 0.62,
+      map: steamTex,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.42,
       depthWrite: false,
     });
     const steamCloud = new THREE.Points(steamGeo, steamMat);
@@ -586,6 +600,13 @@ export default function EbExperience() {
       const distW = (radius + 0.7) / Math.tan(hHalf);
       camera.userData.dist = Math.max(distH, distW);
       camera.updateProjectionMatrix();
+      // fog scaled to the actual camera distance — on portrait screens the
+      // camera sits far back to fit both towers, and the fixed 16..44 range
+      // was washing the whole plant out on mobile
+      const fogD = camera.userData.dist as number;
+      const fog = scene.fog as THREE.Fog;
+      fog.near = Math.max(14, fogD * 1.5);
+      fog.far = Math.max(44, fogD * 4);
       measureLead();
     };
     resize();
@@ -613,12 +634,14 @@ export default function EbExperience() {
       // GSAP drives the dust->reactor transform; scene orbits after it hardens
       const build = reduce ? 1 : morphRef.current.build;
       const solid = reduce ? 1 : morphRef.current.solid;
-      const sceneSpin = Math.min(1, Math.max(0, (p - 0.84) / 0.16));
+      // eased over the last fifth of the track so the full turn ramps in and
+      // out gracefully instead of whipping around linearly
+      const sceneSpin = smooth(Math.min(1, Math.max(0, (p - 0.8) / 0.2)));
 
       // camera — settles into a 3/4 view during the build, then ORBITS the
       // whole scene a full turn as you keep scrolling (the scene rotates)
       const dist = (camera.userData.dist as number) || 16;
-      const cp = Math.min(p, 0.84) / 0.84;
+      const cp = Math.min(p, 0.8) / 0.8;
       const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI * 2;
       camera.position.set(
         Math.sin(orb) * dist,
@@ -627,6 +650,10 @@ export default function EbExperience() {
       );
       camera.lookAt(0, height * 0.82, 0);
       camera.updateMatrixWorld();
+
+      // key light leads the camera through the orbit so the model stays in
+      // 3/4 lighting the whole way round (never a full silhouette)
+      key.position.set(Math.sin(orb - 0.6) * 7, 7, Math.cos(orb - 0.6) * 7);
 
       // pin the beam source just past the screen's top-left corner
       laserSrc
@@ -680,7 +707,21 @@ export default function EbExperience() {
         tipLight.position.copy(tmpTip);
         tipLight.intensity = 3.2 * flick;
       } else {
-        beam.visible = false;
+        // after the strike the tail retracts into the impact point — the
+        // beam finishes its cut instead of popping out of existence
+        const retract = Math.min(1, Math.max(0, (p - 0.5) / 0.05));
+        if (retract < 1) {
+          tmpTip.copy(laserSrc).lerp(strike, retract); // trailing end slides in
+          tmpDir.subVectors(strike, tmpTip);
+          const len = Math.max(0.01, tmpDir.length());
+          beam.position.copy(tmpTip).addScaledVector(tmpDir, 0.5);
+          beam.quaternion.setFromUnitVectors(UP, tmpDir.normalize());
+          beam.scale.set(1, len, 1);
+          beam.visible = true;
+          beamCoreMat.opacity = (0.85 + Math.random() * 0.15) * (1 - retract * 0.55);
+        } else {
+          beam.visible = false;
+        }
         // ground impact flash — the strike that kicks the dust into the air.
         // (only reachable for p>=0.5 since descend>=1, but clamp defensively)
         const impact = Math.min(1, Math.max(0, 1 - (p - 0.5) / 0.09));
@@ -827,6 +868,7 @@ export default function EbExperience() {
       moteMat.dispose();
       steamGeo.dispose();
       steamMat.dispose();
+      steamTex.dispose();
       groundGeo.dispose();
       (ground.material as THREE.Material).dispose();
       starGeo.dispose();
