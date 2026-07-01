@@ -128,6 +128,29 @@ export function buildReactor(): ReactorBuild {
     paneled,
     false
   );
+  // vertical buttress ribs around the containment (between the window columns)
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 16;
+    const rib = new THREE.BoxGeometry(0.1, cH, 0.16);
+    rib.translate(0, cH / 2, cR);
+    rib.rotateY(-a);
+    add(facet(rib, CONCRETE, () => 0.74 + R(-0.03, 0.03)), paneled, false);
+  }
+  // antenna mast + beacon on the dome apex
+  add(
+    facet(
+      new THREE.CylinderGeometry(0.025, 0.055, 0.85, 8).translate(0, cH + domeH + 0.4, 0),
+      STEEL,
+      () => 0.72 + R(-0.03, 0.03)
+    ),
+    paneled,
+    false
+  );
+  {
+    const beacon = new THREE.BoxGeometry(0.09, 0.09, 0.09);
+    beacon.translate(0, cH + domeH + 0.86, 0);
+    add(beacon, litMat, false);
+  }
 
   // ---- two hyperbolic cooling towers (ribbed) + dark rim caps ----
   const towerTops: { x: number; y: number; z: number }[] = [];
@@ -149,6 +172,27 @@ export function buildReactor(): ReactorBuild {
       paneled,
       false
     );
+    // flared base skirt
+    add(
+      facet(
+        new THREE.CylinderGeometry(towerR * 1.06, towerR * 1.2, 0.24, 14).translate(sx * towerX, 0.12, towerZ),
+        TOWER,
+        () => 0.62 + R(-0.03, 0.03)
+      ),
+      paneled,
+      false
+    );
+    // elevated feed pipe from the containment out to the tower, on supports
+    const span = towerX - cR - 0.3;
+    const pipe = new THREE.CylinderGeometry(0.09, 0.09, span, 10);
+    pipe.rotateZ(Math.PI / 2);
+    pipe.translate(sx * (cR + 0.15 + span / 2), 0.52, towerZ * 0.5);
+    add(facet(pipe, STEEL, () => 0.68 + R(-0.04, 0.04)), paneled);
+    for (const f of [0.35, 0.72]) {
+      const post = new THREE.CylinderGeometry(0.05, 0.06, 0.5, 6);
+      post.translate(sx * (cR + 0.15 + span * f), 0.26, towerZ * 0.5);
+      add(facet(post, STEEL, () => 0.55 + R(-0.03, 0.03)), paneled, false);
+    }
     towerTops.push({ x: sx * towerX, y: towerH, z: towerZ });
   }
 
@@ -172,6 +216,52 @@ export function buildReactor(): ReactorBuild {
       paneled,
       false
     );
+  }
+  // rooftop ridge vent + entry door on the turbine hall
+  add(
+    facet(
+      new THREE.BoxGeometry(2.9, 0.12, 0.46).translate(0, 1.08, 2.55),
+      STEEL,
+      () => 0.95 + R(-0.02, 0.02)
+    ),
+    paneled,
+    false
+  );
+  {
+    const door = new THREE.BoxGeometry(0.34, 0.5, 0.05);
+    door.translate(0.95, 0.27, 3.31);
+    add(door, offMat, false);
+  }
+  // steam lines from the containment into the turbine hall
+  for (const px of [-0.5, 0.5]) {
+    const line = new THREE.CylinderGeometry(0.1, 0.1, 1.3, 10);
+    line.rotateX(Math.PI / 2);
+    line.translate(px, 0.44, cR + 0.6);
+    add(facet(line, STEEL, () => 0.66 + R(-0.04, 0.04)), paneled);
+  }
+  // small auxiliary block beside the hall
+  add(
+    facet(
+      new THREE.BoxGeometry(1.0, 0.6, 0.9).translate(-2.05, 0.35, 2.1),
+      STEEL,
+      (cx, cy) => 0.8 + (cy > 0.6 ? 0.06 : 0) + R(-0.03, 0.03)
+    ),
+    paneled
+  );
+  // perimeter light posts around the foundation edge
+  const postRing = towerX + towerR - 0.1;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + 0.4;
+    const px = Math.cos(a) * postRing;
+    const pz = Math.sin(a) * postRing;
+    add(
+      facet(new THREE.CylinderGeometry(0.03, 0.045, 0.55, 6).translate(px, 0.58, pz), STEEL, () => 0.55),
+      paneled,
+      false
+    );
+    const lamp = new THREE.BoxGeometry(0.09, 0.09, 0.09);
+    lamp.translate(px, 0.9, pz);
+    add(lamp, litMat, false);
   }
 
   // ---- emissive windows ----

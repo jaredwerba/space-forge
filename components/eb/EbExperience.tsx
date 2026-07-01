@@ -312,36 +312,41 @@ export default function EbExperience() {
     reactor.add(dust);
 
     // ---- low-poly cratered moon ground ----
-    const groundGeo = new THREE.PlaneGeometry(92, 92, 52, 52);
+    const groundGeo = new THREE.PlaneGeometry(92, 92, 96, 96);
     groundGeo.rotateX(-Math.PI / 2);
     const gp = groundGeo.attributes.position as THREE.BufferAttribute;
     // scattered craters (kept clear of the centre where the plant sits)
-    const craters = Array.from({ length: 18 }, () => {
+    const craters = Array.from({ length: 30 }, () => {
       const a = Math.random() * Math.PI * 2;
-      const rr = 7 + Math.random() * 34;
+      const rr = 6.5 + Math.random() * 36;
       return {
         cx: Math.cos(a) * rr,
         cz: Math.sin(a) * rr,
-        r: 1.5 + Math.random() * 4.6,
-        depth: 0.35 + Math.random() * 1.1,
+        r: 1.1 + Math.random() * 4.2,
+        depth: 0.3 + Math.random() * 1.05,
       };
     });
-    const gcol = new Float32Array(gp.count * 3);
-    for (let i = 0; i < gp.count; i++) {
-      const x = gp.getX(i);
-      const z = gp.getZ(i);
-      // rolling dunes + finer secondary noise
+    // shared height field: 4 noise octaves + crater bowls with raised rims
+    const groundH = (x: number, z: number) => {
       let h =
         Math.sin(x * 0.21) * Math.cos(z * 0.19) * 0.32 +
         Math.sin(x * 0.55 + 1.7) * Math.cos(z * 0.48) * 0.13 +
-        Math.sin(x * 1.3) * Math.cos(z * 1.1 + 0.6) * 0.05;
+        Math.sin(x * 1.3) * Math.cos(z * 1.1 + 0.6) * 0.05 +
+        Math.sin(x * 2.7 + 0.9) * Math.cos(z * 2.4 - 0.4) * 0.022;
       for (const c of craters) {
         const dd = Math.hypot(x - c.cx, z - c.cz) / c.r;
         if (dd < 1.3) {
           h += c.depth * (-Math.exp(-dd * dd * 3) + Math.exp(-((dd - 0.92) * (dd - 0.92)) * 22) * 0.55);
         }
       }
-      gp.setY(i, h - 0.05);
+      return h - 0.05;
+    };
+    const gcol = new Float32Array(gp.count * 3);
+    for (let i = 0; i < gp.count; i++) {
+      const x = gp.getX(i);
+      const z = gp.getZ(i);
+      const h = groundH(x, z);
+      gp.setY(i, h);
       // colour by height + broad mottling + fine grain (darker pits, lit crests)
       const hn = Math.max(0, Math.min(1, 0.5 + h * 0.6));
       const mott = 0.5 + 0.5 * Math.sin(x * 0.13 + z * 0.1) * Math.cos(x * 0.07 - z * 0.11);
@@ -357,6 +362,35 @@ export default function EbExperience() {
       new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
     );
     scene.add(ground);
+
+    // low-poly boulders scattered across the regolith (half-buried)
+    const rockGeo = new THREE.IcosahedronGeometry(1, 0);
+    const rockMat = new THREE.MeshLambertMaterial({ flatShading: true });
+    const ROCKS = 56;
+    const rocks = new THREE.InstancedMesh(rockGeo, rockMat, ROCKS);
+    {
+      const rm = new THREE.Matrix4();
+      const rq = new THREE.Quaternion();
+      const re = new THREE.Euler();
+      const rp = new THREE.Vector3();
+      const rs = new THREE.Vector3();
+      const rc = new THREE.Color();
+      for (let i = 0; i < ROCKS; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const rr = radius + 1.4 + Math.random() * Math.random() * 32;
+        const sc = 0.1 + Math.random() * Math.random() * 0.55;
+        rp.set(Math.cos(a) * rr, 0, Math.sin(a) * rr);
+        rp.y = groundH(rp.x, rp.z) + sc * 0.3;
+        re.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        rq.setFromEuler(re);
+        rs.set(sc * (0.7 + Math.random() * 0.7), sc, sc * (0.7 + Math.random() * 0.7));
+        rm.compose(rp, rq, rs);
+        rocks.setMatrixAt(i, rm);
+        rc.setRGB(0.55, 0.565, 0.6).multiplyScalar(0.75 + Math.random() * 0.45);
+        rocks.setColorAt(i, rc);
+      }
+    }
+    scene.add(rocks);
 
     // ---- starfield: many stars, each sparkling on its own phase ----
     const starN = 1600;
@@ -417,26 +451,39 @@ export default function EbExperience() {
     shoot.rotation.z = -0.42;
     scene.add(shoot);
 
-    // ---- laser beam ----
+    // ---- laser beam — three nested tapered shells (hot core, mid, glow) ----
     const beamCoreMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0, fog: false });
     const beamCore = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
+      // narrow at the tip (radiusTop), wider back at the source
+      new THREE.CylinderGeometry(0.035, 0.09, 1, 16, 12),
       beamCoreMat
+    );
+    const beamMidMat = new THREE.MeshBasicMaterial({
+      color: 0xff8a2a,
+      transparent: true,
+      opacity: 0.34,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    const beamMid = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09, 0.17, 1, 16, 1),
+      beamMidMat
     );
     const beamGlowMat = new THREE.MeshBasicMaterial({
       color: 0xff5a05,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.16,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       fog: false,
     });
     const beamGlow = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 0.22, 1, 8),
+      new THREE.CylinderGeometry(0.18, 0.32, 1, 16, 1),
       beamGlowMat
     );
     const beam = new THREE.Group();
-    beam.add(beamGlow, beamCore);
+    beam.add(beamGlow, beamMid, beamCore);
     scene.add(beam);
     const tipLight = new THREE.PointLight(0xff7a1a, 0, 16, 2);
     scene.add(tipLight);
@@ -448,7 +495,7 @@ export default function EbExperience() {
       depthWrite: false,
       fog: false,
     });
-    const flare = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), flareMat);
+    const flare = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 14), flareMat);
     scene.add(flare);
 
     // ---- lead-glyph dissolve into 3D dust ----
@@ -548,9 +595,11 @@ export default function EbExperience() {
 
     let raf = 0;
     let last = 0;
-    // laser fires in at 45° from the upper-left corner toward the strike point
+    // laser fires in from the screen's top-left corner toward the strike
+    // point; the source is re-anchored to the corner every frame from the
+    // camera frustum so it stays pinned while the camera moves
     const UP = new THREE.Vector3(0, 1, 0);
-    const laserSrc = new THREE.Vector3(-height * 3.2, height * 3.2, 0);
+    const laserSrc = new THREE.Vector3();
     const strike = new THREE.Vector3(0, 0, 0);
     const tmpTip = new THREE.Vector3();
     const tmpDir = new THREE.Vector3();
@@ -578,6 +627,15 @@ export default function EbExperience() {
       );
       camera.lookAt(0, height * 0.82, 0);
       camera.updateMatrixWorld();
+
+      // pin the beam source just past the screen's top-left corner
+      laserSrc
+        .set(-1.04, 1.04, 0.5)
+        .unproject(camera)
+        .sub(camera.position)
+        .normalize()
+        .multiplyScalar(dist * 2.4)
+        .add(camera.position);
 
       // the reactor holds a fixed orientation; the camera orbit turns the scene.
       // The solid mesh fades in UNDER the dust (full by solid 0.55) so it reads
@@ -777,8 +835,12 @@ export default function EbExperience() {
       shootMat.dispose();
       beamCore.geometry.dispose();
       beamCoreMat.dispose();
+      beamMid.geometry.dispose();
+      beamMidMat.dispose();
       beamGlow.geometry.dispose();
       beamGlowMat.dispose();
+      rockGeo.dispose();
+      rockMat.dispose();
       flare.geometry.dispose();
       flareMat.dispose();
       renderer.dispose();
