@@ -97,6 +97,9 @@ export default function EbExperience() {
   const beamRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLDivElement>(null);
+  // GSAP-driven dust->reactor transform (build = dust flying to the surface,
+  // solid = dust hardening into the mesh). Read by the canvas each frame.
+  const morphRef = useRef({ build: 0, solid: 0 });
   const [copied, setCopied] = useState(false);
 
   // ---- smooth scroll + scroll-linked scenes ----
@@ -175,7 +178,11 @@ export default function EbExperience() {
       });
       hero
         .to(line1Ref.current, { yPercent: -26, autoAlpha: 0.16, ease: "none" }, 0.4)
-        .to(line2Ref.current, { yPercent: -12, ease: "none" }, 0.48);
+        .to(line2Ref.current, { yPercent: -12, ease: "none" }, 0.48)
+        // dust->reactor transform, GSAP-driven: every dust mote flies onto the
+        // reactor surface (build), then hardens into the solid model (solid)
+        .to(morphRef.current, { build: 1, ease: "power2.out", duration: 0.2 }, 0.5)
+        .to(morphRef.current, { solid: 1, ease: "power1.inOut", duration: 0.14 }, 0.71);
 
       // NOTE: the lead doesn't shatter here — the canvas layer dissolves it
       // into real regolith dust as the laser beam crosses each glyph.
@@ -278,6 +285,8 @@ export default function EbExperience() {
     // dust cloud (child of the reactor so it shares the slow turntable spin)
     const cur = new Float32Array(count * 3);
     const home = new Float32Array(count * 3);
+    const delay = new Float32Array(count); // per-mote stagger for the assembly
+    const DELAY_MAX = 0.4;
     // dust starts as a flat layer on the ground — kicked up by the strike
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -288,6 +297,7 @@ export default function EbExperience() {
       cur[i * 3] = home[i * 3];
       cur[i * 3 + 1] = home[i * 3 + 1];
       cur[i * 3 + 2] = home[i * 3 + 2];
+      delay[i] = Math.random() * DELAY_MAX;
     }
     const dustGeo = new THREE.BufferGeometry();
     dustGeo.setAttribute("position", new THREE.BufferAttribute(cur, 3));
@@ -538,7 +548,12 @@ export default function EbExperience() {
 
     let raf = 0;
     let last = 0;
-    const SKY = height * 5.5;
+    // laser fires in at 45° from the upper-left corner toward the strike point
+    const UP = new THREE.Vector3(0, 1, 0);
+    const laserSrc = new THREE.Vector3(-height * 3.2, height * 3.2, 0);
+    const strike = new THREE.Vector3(0, 0, 0);
+    const tmpTip = new THREE.Vector3();
+    const tmpDir = new THREE.Vector3();
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -546,14 +561,15 @@ export default function EbExperience() {
       last = now;
       const p = reduce ? 0.92 : Math.min(1, Math.max(0, useEbStore.getState().progress));
       const descend = Math.min(1, p / 0.5);
-      // dust assembles 0.5 -> 0.7, then the whole scene orbits 0.7 -> 1
-      const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.2)));
-      const sceneSpin = Math.min(1, Math.max(0, (p - 0.7) / 0.3));
+      // GSAP drives the dust->reactor transform; scene orbits after it hardens
+      const build = reduce ? 1 : morphRef.current.build;
+      const solid = reduce ? 1 : morphRef.current.solid;
+      const sceneSpin = Math.min(1, Math.max(0, (p - 0.84) / 0.16));
 
-      // camera — settles into a 3/4 view during assembly, then ORBITS the
-      // scene a full turn as you keep scrolling (the scene rotates)
+      // camera — settles into a 3/4 view during the build, then ORBITS the
+      // whole scene a full turn as you keep scrolling (the scene rotates)
       const dist = (camera.userData.dist as number) || 16;
-      const cp = Math.min(p, 0.7) / 0.7;
+      const cp = Math.min(p, 0.84) / 0.84;
       const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI * 2;
       camera.position.set(
         Math.sin(orb) * dist,
@@ -563,40 +579,47 @@ export default function EbExperience() {
       camera.lookAt(0, height * 0.82, 0);
       camera.updateMatrixWorld();
 
-      // the reactor holds a fixed orientation; the camera orbit turns the scene
+      // the reactor holds a fixed orientation; the camera orbit turns the scene.
+      // The solid mesh fades in UNDER the dust (full by solid 0.55) so it reads
+      // as the dust hardening into the model, not a crossfade.
       reactor.rotation.y = 0;
-      const solid = smooth(Math.min(1, Math.max(0, (ae - 0.55) / 0.4)));
-      for (const m of meshes) (m.material as THREE.Material).opacity = solid;
+      const meshOp = Math.min(1, solid / 0.55);
+      for (const m of meshes) (m.material as THREE.Material).opacity = meshOp;
 
-      // dust — hidden until the laser strikes (p~0.5); then it erupts from the
-      // ground and rises, self-assembling onto the reactor surface
+      // dust — erupts at the strike (p~0.5); each mote flies onto its surface
+      // target (staggered), then dissolves once the mesh has hardened under it
       const airborne = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.06)));
-      dustMat.opacity = 0.85 * airborne * (1 - solid);
+      const dustFade = Math.min(1, Math.max(0, (1 - solid) / 0.45));
+      dustMat.opacity = 0.9 * airborne * dustFade;
       dust.visible = dustMat.opacity > 0.02;
       if (dust.visible) {
-        const j = (1 - ae) * 0.22;
+        const span = 1 - DELAY_MAX;
         for (let i = 0; i < count; i++) {
           const k = i * 3;
-          cur[k] = lerp(home[k], targets[k], ae) + (Math.random() - 0.5) * j;
-          cur[k + 1] = lerp(home[k + 1], targets[k + 1], ae) + (Math.random() - 0.5) * j;
-          cur[k + 2] = lerp(home[k + 2], targets[k + 2], ae) + (Math.random() - 0.5) * j;
+          const pb = smooth(Math.min(1, Math.max(0, (build - delay[i]) / span)));
+          const j = (1 - pb) * 0.3;
+          cur[k] = lerp(home[k], targets[k], pb) + (Math.random() - 0.5) * j;
+          cur[k + 1] = lerp(home[k + 1], targets[k + 1], pb) + (Math.random() - 0.5) * j;
+          cur[k + 2] = lerp(home[k + 2], targets[k + 2], pb) + (Math.random() - 0.5) * j;
         }
         dustGeo.attributes.position.needsUpdate = true;
       }
 
-      // laser — descends to the surface (0 -> 0.5), then gone
+      // laser — fires in at 45° from the upper-left corner down to the strike
       if (descend < 1) {
-        const tipY = SKY * (1 - descend);
-        const len = Math.max(0.01, SKY - tipY);
-        beam.position.set(0, (SKY + tipY) / 2, 0);
+        tmpTip.copy(laserSrc).lerp(strike, descend); // leading (bright) end
+        tmpDir.subVectors(tmpTip, laserSrc);
+        const len = Math.max(0.01, tmpDir.length());
+        beam.position.copy(laserSrc).addScaledVector(tmpDir, 0.5);
+        beam.quaternion.setFromUnitVectors(UP, tmpDir.normalize());
         beam.scale.set(1, len, 1);
         beam.visible = true;
         const flick = 0.85 + Math.random() * 0.15;
         beamCoreMat.opacity = flick;
-        flare.position.set(0, tipY, 0);
+        flare.position.copy(tmpTip);
         flareMat.opacity = 0.9 * flick;
         flare.scale.setScalar(0.7 + Math.random() * 0.3);
-        tipLight.position.set(0, tipY + 0.4, 0);
+        tipLight.position.copy(tmpTip);
         tipLight.intensity = 3.2 * flick;
       } else {
         beam.visible = false;
@@ -617,7 +640,7 @@ export default function EbExperience() {
 
       // lead dissolve — the beam tip's screen-Y crosses each glyph -> dust
       if (!reduce && leadBits.length) {
-        tmpV.set(0, SKY * (1 - descend), 0).project(camera);
+        tmpV.copy(laserSrc).lerp(strike, descend).project(camera);
         const beamScreenY = (-tmpV.y * 0.5 + 0.5) * h;
         const band = 26;
         for (const bit of leadBits) {
