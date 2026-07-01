@@ -96,7 +96,7 @@
 
 .eb-hero-track {
   position: relative;
-  height: 360svh;
+  height: 330svh;
 }
 
 .eb-hero-stage {
@@ -132,8 +132,6 @@
   width: 100%;
   height: 100%;
   z-index: 0;
-  /* WebGL renders at a low internal resolution — upscale it chunky (PS2) */
-  image-rendering: pixelated;
 }
 
 .eb-hero-inner {

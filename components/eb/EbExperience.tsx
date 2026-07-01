@@ -7,6 +7,11 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { useEbStore } from "@/lib/ebStore";
 import { buildReactor } from "@/lib/eb3d";
 
@@ -247,30 +252,55 @@ export default function EbExperience() {
     };
   }, []);
 
-  // ---- hero scene: a PS2-era low-poly 3D world (three.js). Scroll drives a
-  //      laser down through the floating lead (which dissolves to dust); the
-  //      dust then assembles into a flat-shaded reactor under a fogged sky ----
+  // ---- hero scene: a cinematic 3D moonscape (three.js, full-res PBR with
+  //      HDR bloom + soft shadows). Scroll drives a laser down through the
+  //      floating lead (which dissolves to dust); the dust then assembles
+  //      into a fission reactor ----
   useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setClearColor(0x06070e, 1);
-    const SCALE = 0.55; // chunky, PS2-grade internal resolution
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x06070e, 16, 44);
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 140);
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
 
-    // flat low-poly lighting — warm key upper-left, cool fill + rim
-    const key = new THREE.DirectionalLight(0xfff1e0, 2.3);
+    // subtle image-based fill so PBR metals/concrete pick up sky bounce
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    scene.environment = envTex;
+    scene.environmentIntensity = 0.15;
+
+    // warm shadow-casting key (follows the orbit) + cool hemisphere fill
+    const key = new THREE.DirectionalLight(0xfff1e0, 1.35);
     key.position.set(-5, 7, 4);
-    const fill = new THREE.AmbientLight(0x3a4458, 1.2);
-    const rim = new THREE.DirectionalLight(0x47526e, 0.7);
-    rim.position.set(5, 2, -5);
-    scene.add(key, fill, rim);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left = -8;
+    key.shadow.camera.right = 8;
+    key.shadow.camera.top = 10;
+    key.shadow.camera.bottom = -6;
+    key.shadow.camera.near = 1;
+    key.shadow.camera.far = 40;
+    key.shadow.bias = -0.0005;
+    const hemi = new THREE.HemisphereLight(0x1c2438, 0x14120f, 0.3);
+    scene.add(key, hemi);
+
+    // HDR bloom pipeline — laser, flare, windows and beacon genuinely glow
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.3, 0.85);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
 
     // ---- reactor model + dust-morph targets ----
     const { group: reactor, meshes, targets, count, radius, height, towerTops, dispose } =
@@ -279,6 +309,8 @@ export default function EbExperience() {
       const mat = m.material as THREE.Material;
       mat.transparent = true;
       mat.opacity = 0;
+      m.castShadow = false; // enabled once the structure hardens
+      m.receiveShadow = true;
     }
     scene.add(reactor);
 
@@ -351,21 +383,22 @@ export default function EbExperience() {
       const hn = Math.max(0, Math.min(1, 0.5 + h * 0.6));
       const mott = 0.5 + 0.5 * Math.sin(x * 0.13 + z * 0.1) * Math.cos(x * 0.07 - z * 0.11);
       const s = 0.6 + hn * 0.42 + mott * 0.12 + (Math.random() - 0.5) * 0.13;
-      gcol[i * 3] = 0.56 * s;
-      gcol[i * 3 + 1] = 0.575 * s;
-      gcol[i * 3 + 2] = 0.61 * s;
+      gcol[i * 3] = 0.23 * s;
+      gcol[i * 3 + 1] = 0.24 * s;
+      gcol[i * 3 + 2] = 0.26 * s;
     }
     groundGeo.setAttribute("color", new THREE.BufferAttribute(gcol, 3));
     groundGeo.computeVertexNormals();
     const ground = new THREE.Mesh(
       groundGeo,
-      new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 })
     );
+    ground.receiveShadow = true;
     scene.add(ground);
 
-    // low-poly boulders scattered across the regolith (half-buried)
-    const rockGeo = new THREE.IcosahedronGeometry(1, 0);
-    const rockMat = new THREE.MeshLambertMaterial({ flatShading: true });
+    // faceted boulders scattered across the regolith (half-buried)
+    const rockGeo = new THREE.IcosahedronGeometry(1, 1);
+    const rockMat = new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1, metalness: 0 });
     const ROCKS = 56;
     const rocks = new THREE.InstancedMesh(rockGeo, rockMat, ROCKS);
     {
@@ -386,10 +419,12 @@ export default function EbExperience() {
         rs.set(sc * (0.7 + Math.random() * 0.7), sc, sc * (0.7 + Math.random() * 0.7));
         rm.compose(rp, rq, rs);
         rocks.setMatrixAt(i, rm);
-        rc.setRGB(0.55, 0.565, 0.6).multiplyScalar(0.75 + Math.random() * 0.45);
+        rc.setRGB(0.24, 0.25, 0.27).multiplyScalar(0.7 + Math.random() * 0.45);
         rocks.setColorAt(i, rc);
       }
     }
+    rocks.castShadow = true;
+    rocks.receiveShadow = true;
     scene.add(rocks);
 
     // ---- starfield: many stars, each sparkling on its own phase ----
@@ -452,7 +487,7 @@ export default function EbExperience() {
     scene.add(shoot);
 
     // ---- laser beam — three nested tapered shells (hot core, mid, glow) ----
-    const beamCoreMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0, fog: false });
+    const beamCoreMat = new THREE.MeshBasicMaterial({ color: 0xfff3e0, fog: false });
     const beamCore = new THREE.Mesh(
       // narrow at the tip (radiusTop), wider back at the source
       new THREE.CylinderGeometry(0.035, 0.09, 1, 16, 12),
@@ -592,7 +627,10 @@ export default function EbExperience() {
       w = r.width;
       h = r.height;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      renderer.setSize(Math.round(w * SCALE * dpr), Math.round(h * SCALE * dpr), false);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(w, h, false);
+      composer.setPixelRatio(dpr);
+      composer.setSize(w, h);
       camera.aspect = w / h;
       const vh = (camera.fov * Math.PI) / 180;
       const distH = (height * 0.6 + 1.2) / Math.tan(vh / 2);
@@ -616,6 +654,7 @@ export default function EbExperience() {
 
     let raf = 0;
     let last = 0;
+    let shadowOn = false;
     // laser fires in from the screen's top-left corner toward the strike
     // point; the source is re-anchored to the corner every frame from the
     // camera frustum so it stays pinned while the camera moves
@@ -638,11 +677,11 @@ export default function EbExperience() {
       // out gracefully instead of whipping around linearly
       const sceneSpin = smooth(Math.min(1, Math.max(0, (p - 0.8) / 0.2)));
 
-      // camera — settles into a 3/4 view during the build, then ORBITS the
-      // whole scene a full turn as you keep scrolling (the scene rotates)
+      // camera — settles into a 3/4 view during the build, then orbits the
+      // scene a half turn (180°) before releasing to the next section
       const dist = (camera.userData.dist as number) || 16;
       const cp = Math.min(p, 0.8) / 0.8;
-      const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI * 2;
+      const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI;
       camera.position.set(
         Math.sin(orb) * dist,
         height * (1.02 - cp * 0.14),
@@ -670,6 +709,13 @@ export default function EbExperience() {
       reactor.rotation.y = 0;
       const meshOp = Math.min(1, solid / 0.55);
       for (const m of meshes) (m.material as THREE.Material).opacity = meshOp;
+      // shadows switch on once the structure is mostly hardened (an
+      // invisible transparent mesh would otherwise cast a full shadow)
+      const showShadow = meshOp > 0.45;
+      if (showShadow !== shadowOn) {
+        shadowOn = showShadow;
+        for (const m of meshes) m.castShadow = showShadow;
+      }
 
       // dust — erupts at the strike (p~0.5); each mote flies onto its surface
       // target (staggered), then dissolves once the mesh has hardened under it
@@ -849,12 +895,12 @@ export default function EbExperience() {
         steamGeo.attributes.position.needsUpdate = true;
         steamPrevLen = steamState.length;
       }
-      steamMat.opacity = 0.5 * solid;
+      steamMat.opacity = 0.34 * solid;
 
       // per-star sparkle
       starMat.uniforms.uTime.value = now * 0.001;
 
-      renderer.render(scene, camera);
+      composer.render();
     };
     raf = requestAnimationFrame(frame);
 
@@ -885,6 +931,8 @@ export default function EbExperience() {
       rockMat.dispose();
       flare.geometry.dispose();
       flareMat.dispose();
+      composer.dispose();
+      envTex.dispose();
       renderer.dispose();
     };
   }, []);
