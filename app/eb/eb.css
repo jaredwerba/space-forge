@@ -117,10 +117,10 @@
 }
 .eb-hero-stage .eb-display {
   color: #eef0f6;
-  font-family: var(--font-pixelify), var(--font-inter), ui-sans-serif, sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  line-height: 1;
+  font-family: var(--font-orbitron), var(--font-inter), ui-sans-serif, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  line-height: 1.04;
 }
 .eb-hero-stage .eb-lead-strong {
   color: rgba(232, 234, 242, 0.92);

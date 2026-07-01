@@ -302,44 +302,94 @@ export default function EbExperience() {
     reactor.add(dust);
 
     // ---- low-poly cratered moon ground ----
-    const groundGeo = new THREE.PlaneGeometry(80, 80, 26, 26);
+    const groundGeo = new THREE.PlaneGeometry(92, 92, 52, 52);
     groundGeo.rotateX(-Math.PI / 2);
     const gp = groundGeo.attributes.position as THREE.BufferAttribute;
+    // scattered craters (kept clear of the centre where the plant sits)
+    const craters = Array.from({ length: 18 }, () => {
+      const a = Math.random() * Math.PI * 2;
+      const rr = 7 + Math.random() * 34;
+      return {
+        cx: Math.cos(a) * rr,
+        cz: Math.sin(a) * rr,
+        r: 1.5 + Math.random() * 4.6,
+        depth: 0.35 + Math.random() * 1.1,
+      };
+    });
+    const gcol = new Float32Array(gp.count * 3);
     for (let i = 0; i < gp.count; i++) {
       const x = gp.getX(i);
       const z = gp.getZ(i);
-      const d = Math.hypot(x, z);
-      const dune = Math.sin(x * 0.24) * Math.cos(z * 0.21) * 0.35;
-      const crater = Math.max(0, 1 - Math.abs(d - 10) / 3) * -0.55;
-      gp.setY(i, dune + crater - 0.05);
+      // rolling dunes + finer secondary noise
+      let h =
+        Math.sin(x * 0.21) * Math.cos(z * 0.19) * 0.32 +
+        Math.sin(x * 0.55 + 1.7) * Math.cos(z * 0.48) * 0.13 +
+        Math.sin(x * 1.3) * Math.cos(z * 1.1 + 0.6) * 0.05;
+      for (const c of craters) {
+        const dd = Math.hypot(x - c.cx, z - c.cz) / c.r;
+        if (dd < 1.3) {
+          h += c.depth * (-Math.exp(-dd * dd * 3) + Math.exp(-((dd - 0.92) * (dd - 0.92)) * 22) * 0.55);
+        }
+      }
+      gp.setY(i, h - 0.05);
+      // colour by height + broad mottling + fine grain (darker pits, lit crests)
+      const hn = Math.max(0, Math.min(1, 0.5 + h * 0.6));
+      const mott = 0.5 + 0.5 * Math.sin(x * 0.13 + z * 0.1) * Math.cos(x * 0.07 - z * 0.11);
+      const s = 0.6 + hn * 0.42 + mott * 0.12 + (Math.random() - 0.5) * 0.13;
+      gcol[i * 3] = 0.56 * s;
+      gcol[i * 3 + 1] = 0.575 * s;
+      gcol[i * 3 + 2] = 0.61 * s;
     }
+    groundGeo.setAttribute("color", new THREE.BufferAttribute(gcol, 3));
     groundGeo.computeVertexNormals();
     const ground = new THREE.Mesh(
       groundGeo,
-      new THREE.MeshLambertMaterial({ color: 0x8c8e96, flatShading: true })
+      new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
     );
     scene.add(ground);
 
-    // ---- starfield ----
-    const starN = 650;
+    // ---- starfield: many stars, each sparkling on its own phase ----
+    const starN = 1600;
     const starPos = new Float32Array(starN * 3);
+    const starPhase = new Float32Array(starN);
+    const starSize = new Float32Array(starN);
     for (let i = 0; i < starN; i++) {
-      const rr = 48 + Math.random() * 28;
+      const rr = 46 + Math.random() * 36;
       const th = Math.random() * Math.PI * 2;
       const ph = Math.acos(2 * Math.random() - 1);
       starPos[i * 3] = rr * Math.sin(ph) * Math.cos(th);
-      starPos[i * 3 + 1] = Math.abs(rr * Math.cos(ph)) * 0.85 + 3;
+      starPos[i * 3 + 1] = Math.abs(rr * Math.cos(ph)) * 0.9 + 2;
       starPos[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
+      starPhase[i] = Math.random() * Math.PI * 2;
+      starSize[i] = 0.6 + Math.random() * Math.random() * 2.6;
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({
-      color: 0xe8eaf2,
-      size: 0.18,
-      sizeAttenuation: true,
+    starGeo.setAttribute("aPhase", new THREE.BufferAttribute(starPhase, 1));
+    starGeo.setAttribute("aSize", new THREE.BufferAttribute(starSize, 1));
+    const starMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
       transparent: true,
-      opacity: 0.9,
-      fog: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: `
+        attribute float aPhase;
+        attribute float aSize;
+        uniform float uTime;
+        varying float vB;
+        void main() {
+          vB = 0.3 + 0.7 * pow(0.5 + 0.5 * sin(uTime * 2.4 + aPhase), 2.0);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = aSize * (230.0 / -mv.z) * (0.6 + 0.8 * vB);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        varying float vB;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          float a = smoothstep(0.5, 0.04, d) * vB;
+          gl_FragColor = vec4(vec3(0.85, 0.9, 1.0), a);
+        }`,
     });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
@@ -496,25 +546,25 @@ export default function EbExperience() {
       last = now;
       const p = reduce ? 0.92 : Math.min(1, Math.max(0, useEbStore.getState().progress));
       const descend = Math.min(1, p / 0.5);
-      // dust assembles 0.5 -> 0.7, then the reactor spins a full turn 0.7 -> 1
+      // dust assembles 0.5 -> 0.7, then the whole scene orbits 0.7 -> 1
       const ae = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.2)));
-      const spin = Math.min(1, Math.max(0, (p - 0.7) / 0.3));
+      const sceneSpin = Math.min(1, Math.max(0, (p - 0.7) / 0.3));
 
-      // camera — dolly/orbit into place during assembly, then hold for the spin
+      // camera — settles into a 3/4 view during assembly, then ORBITS the
+      // scene a full turn as you keep scrolling (the scene rotates)
       const dist = (camera.userData.dist as number) || 16;
       const cp = Math.min(p, 0.7) / 0.7;
-      const orb = -0.3 + cp * 0.35;
+      const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI * 2;
       camera.position.set(
         Math.sin(orb) * dist,
-        height * (1.0 - cp * 0.1),
+        height * (1.02 - cp * 0.14),
         Math.cos(orb) * dist
       );
-      camera.lookAt(0, height * 1.05, 0);
+      camera.lookAt(0, height * 0.82, 0);
       camera.updateMatrixWorld();
 
-      // reactor — fades in as the dust lands, swings to a 3/4 view, then once
-      // rendered a full 360° turntable spin driven by continued scroll-down
-      reactor.rotation.y = -0.35 - (1 - ae) * 0.5 + spin * Math.PI * 2;
+      // the reactor holds a fixed orientation; the camera orbit turns the scene
+      reactor.rotation.y = 0;
       const solid = smooth(Math.min(1, Math.max(0, (ae - 0.55) / 0.4)));
       for (const m of meshes) (m.material as THREE.Material).opacity = solid;
 
@@ -679,8 +729,8 @@ export default function EbExperience() {
       }
       steamMat.opacity = 0.5 * solid;
 
-      // subtle star twinkle
-      starMat.opacity = 0.7 + 0.2 * Math.sin(now * 0.001);
+      // per-star sparkle
+      starMat.uniforms.uTime.value = now * 0.001;
 
       renderer.render(scene, camera);
     };
@@ -760,7 +810,7 @@ export default function EbExperience() {
               <p className="eb-label" data-reveal>
                 LunarForge — Field Log 01
               </p>
-              <h1 className="eb-display mx-auto mt-5 text-[clamp(2.6rem,9.5vw,5.4rem)]">
+              <h1 className="eb-display mx-auto mt-5 text-[clamp(1.9rem,8vw,4.8rem)]">
                 <span ref={line1Ref} className="block">
                   Where dust
                 </span>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Mono,
   Inter,
+  Orbitron,
   Pixelify_Sans,
   Space_Grotesk,
   Space_Mono,
@@ -38,6 +39,12 @@ const pixelify = Pixelify_Sans({
   subsets: ["latin"],
 });
 
+// /eb hero display — Orbitron, a space-age geometric face (variable)
+const orbitron = Orbitron({
+  variable: "--font-orbitron",
+  subsets: ["latin"],
+});
+
 const spaceMono = Space_Mono({
   variable: "--font-cmono",
   subsets: ["latin"],
@@ -69,7 +76,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${tiny5.variable} ${pixelify.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${grotesk.variable} ${plexMono.variable} ${tiny5.variable} ${pixelify.variable} ${orbitron.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>

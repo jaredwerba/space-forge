@@ -1,8 +1,8 @@
-/* Low-poly (PS2-era) 3D reactor for the EB hero. Flat-shaded faceted
-   geometry with per-face vertex-colour paneling/banding (the chunky
-   PS2 texture look), a foundation slab, a ring of emissive windows, and
-   two hyperbolic cooling towers. Returns an evenly sampled surface point
-   cloud (dust morph targets) and the tower-top anchors (steam emitters). */
+/* Low-poly nuclear plant for the EB hero. A cylindrical containment
+   building capped by a hemisphere dome, two hyperbolic cooling towers, and
+   a turbine hall — flat-shaded with clean per-face vertex-colour paneling
+   (structured banding, low noise). Returns an evenly sampled surface point
+   cloud (dust-morph targets) and the tower-top steam anchors. */
 
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -20,38 +20,41 @@ export type ReactorBuild = {
 };
 
 type RGB = [number, number, number];
+type Shade = (cx: number, cy: number, cz: number) => number;
 
-// Bake a flat per-face colour into a geometry → chunky PS2 paneling. Returns a
-// non-indexed geometry with a `color` attribute; pair with a material that has
-// { vertexColors: true, flatShading: true }.
-function facet(geo: THREE.BufferGeometry, base: RGB, shade: (cy: number) => number) {
+// Bake a flat per-face colour into a geometry (chunky PS2 paneling). Returns a
+// non-indexed geometry with a `color` attribute; pair with a vertexColors +
+// flatShading material.
+function facet(geo: THREE.BufferGeometry, base: RGB, shade: Shade) {
   const g = geo.index ? geo.toNonIndexed() : geo;
   const pos = g.attributes.position as THREE.BufferAttribute;
   const faces = pos.count / 3;
   const col = new Float32Array(pos.count * 3);
   for (let f = 0; f < faces; f++) {
     const i = f * 3;
+    const cx = (pos.getX(i) + pos.getX(i + 1) + pos.getX(i + 2)) / 3;
     const cy = (pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2)) / 3;
-    const s = shade(cy);
+    const cz = (pos.getZ(i) + pos.getZ(i + 1) + pos.getZ(i + 2)) / 3;
+    const s = shade(cx, cy, cz);
     for (let k = 0; k < 3; k++) {
-      col[(i + k) * 3] = base[0] * s;
-      col[(i + k) * 3 + 1] = base[1] * s;
-      col[(i + k) * 3 + 2] = base[2] * s;
+      col[(i + k) * 3] = Math.min(1, base[0] * s);
+      col[(i + k) * 3 + 1] = Math.min(1, base[1] * s);
+      col[(i + k) * 3 + 2] = Math.min(1, base[2] * s);
     }
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3));
   return g;
 }
 
-// hyperbolic cooling-tower silhouette as a lathe profile (few points = faceted)
+// hyperbolic cooling-tower silhouette as a lathe profile
 function towerProfile(h: number, rBase: number): THREE.Vector2[] {
-  const rWaist = rBase * 0.58;
-  const rTop = rBase * 0.82;
-  const waistT = 0.66;
+  const rWaist = rBase * 0.56;
+  const rTop = rBase * 0.78;
+  const waistT = 0.68;
   const A = (rWaist - rBase - (rTop - rBase) * waistT) / (waistT * waistT - waistT);
   const B = rTop - rBase - A;
   const pts: THREE.Vector2[] = [];
-  const N = 9;
+  const N = 12;
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     pts.push(new THREE.Vector2(Math.max(0.04, A * t * t + B * t + rBase), t * h));
@@ -65,11 +68,14 @@ export function buildReactor(): ReactorBuild {
   const sampleGeos: THREE.BufferGeometry[] = [];
   const R = (a: number, b: number) => a + Math.random() * (b - a);
 
-  const STONE: RGB = [0.82, 0.77, 0.67];
-  const STEEL: RGB = [0.55, 0.58, 0.63];
+  const CONCRETE: RGB = [0.82, 0.8, 0.75];
+  const TOWER: RGB = [0.8, 0.78, 0.73];
+  const STEEL: RGB = [0.53, 0.56, 0.61];
+  const FOUND: RGB = [0.4, 0.42, 0.46];
+
   const paneled = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  const litMat = new THREE.MeshBasicMaterial({ color: 0xffb24a });
-  const offMat = new THREE.MeshBasicMaterial({ color: 0x23272f });
+  const litMat = new THREE.MeshBasicMaterial({ color: 0xffbe5c });
+  const offMat = new THREE.MeshBasicMaterial({ color: 0x262b33 });
 
   const add = (geo: THREE.BufferGeometry, mat: THREE.Material, sample = true) => {
     const m = new THREE.Mesh(geo, mat);
@@ -78,94 +84,120 @@ export function buildReactor(): ReactorBuild {
     if (sample) sampleGeos.push(geo);
   };
 
-  const drumH = 0.7;
-  const drumR = 1.95;
-  const DR = 2.25;
-  const domeScaleY = 0.82;
-  const towerH = 2.45;
-  const towerR = 0.62;
-  const towerX = 3.05;
+  // ---- dimensions ----
+  const cR = 1.4; // containment radius
+  const cH = 2.05; // containment cylinder height
+  const domeH = cR; // hemisphere
+  const towerH = 3.0;
+  const towerR = 0.82;
+  const towerX = 3.25;
+  const towerZ = 0.15;
 
-  // foundation slab
+  // ---- foundation slab ----
   add(
     facet(
-      new THREE.CylinderGeometry(towerX + towerR + 0.5, towerX + towerR + 0.7, 0.4, 22, 1).translate(0, 0.12, 0),
-      STEEL,
-      () => 0.5 + R(-0.05, 0.05)
+      new THREE.CylinderGeometry(towerX + towerR + 0.5, towerX + towerR + 0.75, 0.42, 28, 1).translate(0, 0.1, 0),
+      FOUND,
+      () => 0.55 + R(-0.05, 0.05)
     ),
     paneled
   );
 
-  // drum (steel, faint per-panel variation)
+  // ---- containment building: cylinder + hemisphere dome ----
   add(
     facet(
-      new THREE.CylinderGeometry(drumR, drumR * 1.04, drumH, 16, 1).translate(0, drumH / 2, 0),
-      STEEL,
-      () => 0.82 + R(-0.08, 0.08)
+      new THREE.CylinderGeometry(cR, cR * 1.03, cH, 22, 1).translate(0, cH / 2, 0),
+      CONCRETE,
+      (cx, cy, cz) => 0.9 + Math.sin(Math.atan2(cz, cx) * 11) * 0.03 + R(-0.02, 0.02)
     ),
     paneled
   );
-
-  // squashed faceted dome — paneled, brighter toward the crown
-  const domeGeo = new THREE.SphereGeometry(DR, 14, 7, 0, Math.PI * 2, 0, Math.PI * 0.5);
-  domeGeo.scale(1, domeScaleY, 1);
-  domeGeo.translate(0, drumH, 0);
+  const domeGeo = new THREE.SphereGeometry(cR, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5);
+  domeGeo.translate(0, cH, 0);
   add(
-    facet(domeGeo, STONE, (cy) => {
-      const frac = (cy - drumH) / (DR * domeScaleY);
-      return 0.82 + frac * 0.16 + R(-0.07, 0.07);
-    }),
+    facet(domeGeo, CONCRETE, (cx, cy) => 0.86 + ((cy - cH) / domeH) * 0.14 + R(-0.025, 0.025)),
     paneled
   );
+  // ring lip where the dome meets the cylinder
+  add(
+    facet(
+      new THREE.CylinderGeometry(cR * 1.05, cR * 1.05, 0.13, 22, 1).translate(0, cH, 0),
+      STEEL,
+      () => 0.7 + R(-0.04, 0.04)
+    ),
+    paneled,
+    false
+  );
 
-  // two hyperbolic cooling towers (ribbed banding) + dark open rim caps
+  // ---- two hyperbolic cooling towers (ribbed) + dark rim caps ----
   const towerTops: { x: number; y: number; z: number }[] = [];
   for (const sx of [-1, 1]) {
     add(
       facet(
-        new THREE.LatheGeometry(towerProfile(towerH, towerR), 9).translate(sx * towerX, 0, 0),
-        STONE,
-        (cy) => 0.78 + (Math.sin(cy * 7) * 0.5 + 0.5) * 0.16 + R(-0.05, 0.05)
+        new THREE.LatheGeometry(towerProfile(towerH, towerR), 14).translate(sx * towerX, 0, towerZ),
+        TOWER,
+        (cx, cy) => 0.82 + (Math.sin(cy * 8) * 0.5 + 0.5) * 0.1 + R(-0.03, 0.03)
       ),
       paneled
     );
     add(
       facet(
-        new THREE.CylinderGeometry(towerR * 0.8, towerR * 0.84, 0.14, 9, 1, true).translate(sx * towerX, towerH - 0.05, 0),
+        new THREE.CylinderGeometry(towerR * 0.76, towerR * 0.8, 0.16, 14, 1, true).translate(sx * towerX, towerH - 0.06, towerZ),
         STEEL,
-        () => 0.42 + R(-0.04, 0.04)
+        () => 0.4 + R(-0.03, 0.03)
       ),
       paneled,
       false
     );
-    towerTops.push({ x: sx * towerX, y: towerH, z: 0 });
+    towerTops.push({ x: sx * towerX, y: towerH, z: towerZ });
   }
 
-  // a row of pipe arches across the front of the drum
-  for (let i = -2; i <= 2; i++) {
+  // ---- turbine hall: a long low building in front ----
+  add(
+    facet(
+      new THREE.BoxGeometry(3.4, 0.95, 1.5).translate(0, 0.55, 2.55),
+      STEEL,
+      (cx, cy) => 0.88 + (cy > 0.9 ? 0.06 : 0) + R(-0.03, 0.03)
+    ),
+    paneled
+  );
+  // a couple of vent stacks on the turbine hall
+  for (const vx of [-1, 1]) {
     add(
       facet(
-        new THREE.TorusGeometry(0.34, 0.085, 5, 9, Math.PI).translate(i * 0.78, 0.18, drumR * 0.94),
+        new THREE.CylinderGeometry(0.11, 0.13, 0.7, 8).translate(vx * 1.1, 1.35, 2.55),
         STEEL,
-        () => 0.7 + R(-0.06, 0.06)
+        () => 0.65 + R(-0.04, 0.04)
       ),
-      paneled
+      paneled,
+      false
     );
   }
 
-  // emissive windows ringing the drum (most lit, some dark) — the "power" glow
-  const winN = 18;
-  for (let i = 0; i < winN; i++) {
-    const a = (i / winN) * Math.PI * 2;
-    const box = new THREE.BoxGeometry(0.14, 0.3, 0.07);
-    box.rotateY(-a);
-    box.translate(Math.cos(a) * drumR * 1.02, drumH * 0.52, Math.sin(a) * drumR * 1.02);
-    add(box, Math.random() < 0.62 ? litMat : offMat, false);
+  // ---- emissive windows ----
+  const windows: [number, number, number, number][] = []; // x,y,z,rotY
+  // two rows around the containment cylinder
+  for (const wy of [cH * 0.42, cH * 0.72]) {
+    const n = 16;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      windows.push([Math.cos(a) * cR * 1.02, wy, Math.sin(a) * cR * 1.02, -a]);
+    }
+  }
+  // a strip along the turbine hall front
+  for (let i = -3; i <= 3; i++) {
+    windows.push([i * 0.42, 0.58, 2.55 + 0.76, 0]);
+  }
+  for (const [x, y, z, ry] of windows) {
+    const box = new THREE.BoxGeometry(0.12, 0.22, 0.06);
+    box.rotateY(ry);
+    box.translate(x, y, z);
+    add(box, Math.random() < 0.66 ? litMat : offMat, false);
   }
 
   // ---- sample the structural surface for the dust-morph targets ----
   const merged = mergeGeometries(sampleGeos, false);
-  const count = 3200;
+  const count = 3400;
   const targets = new Float32Array(count * 3);
   if (merged) {
     const sampler = new MeshSurfaceSampler(new THREE.Mesh(merged)).build();
@@ -179,8 +211,8 @@ export function buildReactor(): ReactorBuild {
     merged.dispose();
   }
 
-  const radius = towerX + towerR + 0.7;
-  const height = drumH + DR * domeScaleY;
+  const radius = towerX + towerR + 0.8;
+  const height = cH + domeH;
 
   const dispose = () => {
     for (const m of meshes) m.geometry.dispose();
