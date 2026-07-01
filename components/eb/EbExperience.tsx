@@ -262,7 +262,15 @@ export default function EbExperience() {
     if (!canvas || !stage) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    const dprCap = Math.min(window.devicePixelRatio || 1, 2);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      // MSAA only where pixels are big (desktop); at 2x mobile density the
+      // AA cost outweighs the benefit on iPhone-class GPUs
+      antialias: dprCap < 1.5,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
     renderer.setClearColor(0x06070e, 1);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -284,7 +292,8 @@ export default function EbExperience() {
     const key = new THREE.DirectionalLight(0xfff1e0, 1.35);
     key.position.set(-5, 7, 4);
     key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
+    const shadowRes = window.innerWidth < 800 ? 1024 : 2048;
+    key.shadow.mapSize.set(shadowRes, shadowRes);
     key.shadow.camera.left = -8;
     key.shadow.camera.right = 8;
     key.shadow.camera.top = 10;
@@ -314,31 +323,79 @@ export default function EbExperience() {
     }
     scene.add(reactor);
 
-    // dust cloud (child of the reactor so it shares the slow turntable spin)
+    // dust cloud — regolith ejecta. Every grain launches from the impact pit
+    // on a ballistic vacuum parabola and rains down onto its own spot on the
+    // reactor's surface, so the eruption IS the assembly.
     const cur = new Float32Array(count * 3);
-    const home = new Float32Array(count * 3);
-    const delay = new Float32Array(count); // per-mote stagger for the assembly
+    const org = new Float32Array(count * 3); // launch points in the impact pit
+    const arcH = new Float32Array(count); // per-grain parabola apex height
+    const delay = new Float32Array(count); // per-grain stagger
     const DELAY_MAX = 0.4;
-    // dust starts as a flat layer on the ground — kicked up by the strike
+    const dSize = new Float32Array(count);
+    const dShade = new Float32Array(count);
     for (let i = 0; i < count; i++) {
+      const k = i * 3;
       const a = Math.random() * Math.PI * 2;
-      const rr = Math.sqrt(Math.random()) * radius * 1.05;
-      home[i * 3] = Math.cos(a) * rr;
-      home[i * 3 + 1] = Math.random() * 0.5;
-      home[i * 3 + 2] = Math.sin(a) * rr;
-      cur[i * 3] = home[i * 3];
-      cur[i * 3 + 1] = home[i * 3 + 1];
-      cur[i * 3 + 2] = home[i * 3 + 2];
+      const rr = Math.sqrt(Math.random()) * 0.55;
+      org[k] = Math.cos(a) * rr;
+      org[k + 1] = Math.random() * 0.12;
+      org[k + 2] = Math.sin(a) * rr;
+      cur[k] = org[k];
+      cur[k + 1] = org[k + 1];
+      cur[k + 2] = org[k + 2];
+      const range = Math.hypot(targets[k] - org[k], targets[k + 2] - org[k + 2]);
+      arcH[i] = 1.2 + range * (0.45 + Math.random() * 0.5) + Math.random() * 0.8;
       delay[i] = Math.random() * DELAY_MAX;
+      dSize[i] = 0.05 + Math.random() * Math.random() * 0.17;
+      dShade[i] = 0.7 + Math.random() * 0.5;
     }
+    // soft round speck sprite shared by the dust + lead motes
+    const dotCanvas = document.createElement("canvas");
+    dotCanvas.width = dotCanvas.height = 32;
+    const dctx = dotCanvas.getContext("2d");
+    if (dctx) {
+      const g = dctx.createRadialGradient(16, 16, 1, 16, 16, 15);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.45, "rgba(255,255,255,0.7)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      dctx.fillStyle = g;
+      dctx.fillRect(0, 0, 32, 32);
+    }
+    const dustTex = new THREE.CanvasTexture(dotCanvas);
+
     const dustGeo = new THREE.BufferGeometry();
     dustGeo.setAttribute("position", new THREE.BufferAttribute(cur, 3));
-    const dustMat = new THREE.PointsMaterial({
-      color: 0xb3a98f,
-      size: 0.12,
-      sizeAttenuation: true,
+    dustGeo.setAttribute("aSize", new THREE.BufferAttribute(dSize, 1));
+    dustGeo.setAttribute("aShade", new THREE.BufferAttribute(dShade, 1));
+    const dustMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uMap: { value: dustTex },
+        uOpacity: { value: 0 },
+        uScale: { value: 1000 },
+        uColor: { value: new THREE.Color(0xb9ad90) },
+      },
       transparent: true,
       depthWrite: false,
+      vertexShader: `
+        attribute float aSize;
+        attribute float aShade;
+        uniform float uScale;
+        varying float vShade;
+        void main() {
+          vShade = aShade;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = aSize * (uScale / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        uniform sampler2D uMap;
+        uniform float uOpacity;
+        uniform vec3 uColor;
+        varying float vShade;
+        void main() {
+          float a = texture2D(uMap, gl_PointCoord).a;
+          gl_FragColor = vec4(uColor * vShade, a * uOpacity);
+        }`,
     });
     const dust = new THREE.Points(dustGeo, dustMat);
     reactor.add(dust);
@@ -546,6 +603,7 @@ export default function EbExperience() {
     const moteMat = new THREE.PointsMaterial({
       color: 0xc6b99c,
       size: 0.14,
+      map: dustTex,
       sizeAttenuation: true,
       transparent: true,
       opacity: 0.95,
@@ -631,6 +689,9 @@ export default function EbExperience() {
       renderer.setSize(w, h, false);
       composer.setPixelRatio(dpr);
       composer.setSize(w, h);
+      // bloom at half resolution — visually identical, much cheaper on mobile
+      bloom.setSize(Math.round((w * dpr) / 2), Math.round((h * dpr) / 2));
+      dustMat.uniforms.uScale.value = (h * dpr) / (2 * Math.tan((camera.fov * Math.PI) / 360));
       camera.aspect = w / h;
       const vh = (camera.fov * Math.PI) / 180;
       const distH = (height * 0.6 + 1.2) / Math.tan(vh / 2);
@@ -721,17 +782,23 @@ export default function EbExperience() {
       // target (staggered), then dissolves once the mesh has hardened under it
       const airborne = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.06)));
       const dustFade = Math.min(1, Math.max(0, (1 - solid) / 0.45));
-      dustMat.opacity = 0.9 * airborne * dustFade;
-      dust.visible = dustMat.opacity > 0.02;
+      const dustOp = 0.95 * airborne * dustFade;
+      dustMat.uniforms.uOpacity.value = dustOp;
+      dust.visible = dustOp > 0.02;
       if (dust.visible) {
         const span = 1 - DELAY_MAX;
         for (let i = 0; i < count; i++) {
           const k = i * 3;
-          const pb = smooth(Math.min(1, Math.max(0, (build - delay[i]) / span)));
-          const j = (1 - pb) * 0.3;
-          cur[k] = lerp(home[k], targets[k], pb) + (Math.random() - 0.5) * j;
-          cur[k + 1] = lerp(home[k + 1], targets[k + 1], pb) + (Math.random() - 0.5) * j;
-          cur[k + 2] = lerp(home[k + 2], targets[k + 2], pb) + (Math.random() - 0.5) * j;
+          const e = smooth(Math.min(1, Math.max(0, (build - delay[i]) / span)));
+          const j = (1 - e) * 0.1;
+          // ballistic arc: linear ground track + 4e(1-e) vacuum parabola
+          cur[k] = org[k] + (targets[k] - org[k]) * e + (Math.random() - 0.5) * j;
+          cur[k + 1] =
+            org[k + 1] +
+            (targets[k + 1] - org[k + 1]) * e +
+            arcH[i] * 4 * e * (1 - e) +
+            (Math.random() - 0.5) * j * 0.5;
+          cur[k + 2] = org[k + 2] + (targets[k + 2] - org[k + 2]) * e + (Math.random() - 0.5) * j;
         }
         dustGeo.attributes.position.needsUpdate = true;
       }
@@ -910,6 +977,7 @@ export default function EbExperience() {
       dispose();
       dustGeo.dispose();
       dustMat.dispose();
+      dustTex.dispose();
       moteGeo.dispose();
       moteMat.dispose();
       steamGeo.dispose();
