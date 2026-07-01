@@ -152,14 +152,9 @@
   color: rgba(214, 217, 226, 0.72);
 }
 
-/* lead line floats in space, in the path of the descending laser */
+/* lead sits under the headline, still in the descending laser's path */
 .eb-hero-foot {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 55%;
-  transform: translateY(-50%);
-  z-index: 2;
+  margin-top: clamp(1.4rem, 3.5vh, 2.4rem);
 }
 
 /* ---------- scroll cues ---------- */

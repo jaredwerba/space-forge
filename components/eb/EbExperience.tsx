@@ -143,13 +143,6 @@ export default function EbExperience() {
       // the load fade so the two never fight over the same property.
       const leadChars = leadRef.current ? splitChars(leadRef.current) : [];
       gsap.set(leadChars, { opacity: 1 });
-      if (!reduce) {
-        gsap.fromTo(
-          footRef.current,
-          { autoAlpha: 0 },
-          { autoAlpha: 1, duration: 0.8, ease: "none", delay: 0.9 }
-        );
-      }
 
       // hero scrub timeline — scroll drives the canvas progress + text drift
       const hero = gsap.timeline({
@@ -318,6 +311,27 @@ export default function EbExperience() {
     });
     const sinterRing = new THREE.Mesh(ringGeo, ringMat);
     scene.add(sinterRing);
+
+    // target designator — pulses on the strike point while the laser is
+    // inbound, so the scene has a living focal point from the first frame
+    const tgtGeo = new THREE.RingGeometry(1.35, 1.52, 72);
+    tgtGeo.rotateX(-Math.PI / 2);
+    tgtGeo.translate(0, 0.26, 0);
+    const tgtDotGeo = new THREE.CircleGeometry(0.22, 28);
+    tgtDotGeo.rotateX(-Math.PI / 2);
+    tgtDotGeo.translate(0, 0.26, 0);
+    const tgtMat = new THREE.MeshBasicMaterial({
+      color: 0xff7a2a,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+      side: THREE.DoubleSide,
+    });
+    const tgtRing = new THREE.Mesh(tgtGeo, tgtMat);
+    const tgtDot = new THREE.Mesh(tgtDotGeo, tgtMat);
+    scene.add(tgtRing, tgtDot);
 
     // dust cloud — regolith ejecta. Every grain launches from the impact pit
     // on a ballistic vacuum parabola and rains back down onto the ground
@@ -753,10 +767,12 @@ export default function EbExperience() {
       // scene a half turn (180°) before releasing to the next section
       const dist = (camera.userData.dist as number) || 16;
       const cp = Math.min(p, 0.8) / 0.8;
-      const orb = -0.5 + cp * 0.32 + sceneSpin * Math.PI;
+      // idle breath keeps the scene alive even before any scroll
+      const orb =
+        -0.5 + cp * 0.32 + sceneSpin * Math.PI + Math.sin(now * 0.00045) * 0.012;
       camera.position.set(
         Math.sin(orb) * dist,
-        height * (1.02 - cp * 0.14),
+        height * (1.02 - cp * 0.14) + Math.sin(now * 0.0006 + 1.3) * 0.05,
         Math.cos(orb) * dist
       );
       camera.lookAt(0, height * 0.82, 0);
@@ -798,6 +814,14 @@ export default function EbExperience() {
       ringMat.opacity =
         airborne * (1 - solid) * (0.32 + 0.14 * Math.sin(now * 0.012));
       sinterRing.visible = ringMat.opacity > 0.01;
+
+      // target designator — breathes on the build site until the strike
+      const inbound = 1 - smooth(Math.min(1, p / 0.5));
+      const tPulse = 0.5 + 0.5 * Math.sin(now * 0.0035);
+      tgtMat.opacity = inbound * (0.3 + 0.45 * tPulse);
+      const ts = 1 + tPulse * 0.18;
+      tgtRing.scale.set(ts, 1, ts);
+      tgtRing.visible = tgtDot.visible = tgtMat.opacity > 0.01;
       // shadows switch on once the structure is mostly assembled
       const showShadow = solid > 0.5;
       if (showShadow !== shadowOn) {
@@ -1034,6 +1058,9 @@ export default function EbExperience() {
       flareMat.dispose();
       ringGeo.dispose();
       ringMat.dispose();
+      tgtGeo.dispose();
+      tgtDotGeo.dispose();
+      tgtMat.dispose();
       composer.dispose();
       envTex.dispose();
       renderer.dispose();
@@ -1096,15 +1123,14 @@ export default function EbExperience() {
                   becomes power
                 </span>
               </h1>
-            </div>
-
-            <div ref={footRef} className="eb-hero-foot eb-wrap">
-              <p
-                ref={leadRef}
-                className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center"
-              >
-                Launch the core. We build the rest.
-              </p>
+              <div ref={footRef} className="eb-hero-foot">
+                <p
+                  ref={leadRef}
+                  className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center"
+                >
+                  Launch the core. We build the rest.
+                </p>
+              </div>
             </div>
 
             <div ref={phaseRef} className="eb-phase" aria-hidden>
