@@ -136,28 +136,7 @@ export default function EbExperience() {
     onScroll();
 
     const ctx = gsap.context(() => {
-      const l1 = line1Ref.current ? splitChars(line1Ref.current) : [];
-      const l2 = line2Ref.current ? splitChars(line2Ref.current) : [];
-
-      // pixel headline — each glyph flickers and pops in from the dust
-      const heroChars = [...l1, ...l2];
-      if (reduce) {
-        gsap.set(heroChars, { opacity: 1 });
-      } else {
-        gsap.set(heroChars, {
-          opacity: 0,
-          scale: 0.4,
-          transformOrigin: "50% 100%",
-        });
-        gsap.to(heroChars, {
-          opacity: 1,
-          scale: 1,
-          duration: 0.55,
-          ease: "steps(5)",
-          delay: 0.25,
-          stagger: { amount: 1.1, from: "random" },
-        });
-      }
+      // headline is intentionally static — no reveal, no scroll drift
 
       // lead line — floats in space, then the laser shatters it into dust.
       // Chars' opacity is owned by the scrub shatter; the container handles
@@ -183,10 +162,11 @@ export default function EbExperience() {
         },
       });
       hero
-        .to(line1Ref.current, { yPercent: -26, autoAlpha: 0.16, ease: "none" }, 0.4)
-        .to(line2Ref.current, { yPercent: -12, ease: "none" }, 0.48)
-        // dust->reactor transform, GSAP-driven: every dust mote flies onto the
-        // reactor surface (build), then hardens into the solid model (solid)
+        // span keeper: the headline no longer tweens, so pin the timeline's
+        // total duration at 0.98 to keep build/solid on the same scroll map
+        .to({}, { duration: 0.98, ease: "none" }, 0)
+        // dust->reactor transform, GSAP-driven: dust erupts over the site
+        // (build) while the plant assembles piece by piece (solid)
         .to(morphRef.current, { build: 1, ease: "power2.out", duration: 0.2 }, 0.5)
         .to(morphRef.current, { solid: 1, ease: "power1.inOut", duration: 0.34 }, 0.56);
 
@@ -1105,7 +1085,7 @@ export default function EbExperience() {
           <div ref={stageRef} className="eb-hero-stage">
             <canvas ref={canvasRef} className="eb-hero-canvas" aria-hidden />
             <div className="eb-hero-inner eb-wrap text-center">
-              <p className="eb-label" data-reveal>
+              <p className="eb-label">
                 LunarForge — Fission infrastructure, built on the Moon
               </p>
               <h1 className="eb-display mx-auto mt-5 text-[clamp(1.9rem,8vw,4.8rem)]">
