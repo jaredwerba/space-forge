@@ -84,8 +84,29 @@ export function buildReactor(): ReactorBuild {
   });
   const mats = [concrete, concreteDark, steel, steelDark, clad, glowWin, darkWin, beaconMat];
 
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, sample = true) => {
-    const m = new THREE.Mesh(geo, mat);
+  // Each piece gets its own cloned material (so it can glow sinter-hot as it
+  // emerges), an assembly stage (0 = first out of the ground .. 9 = last),
+  // and a sink depth (how far below the surface it starts).
+  const MAX_STAGE = 9;
+  const add = (
+    geo: THREE.BufferGeometry,
+    mat: THREE.Material,
+    sample = true,
+    stage = 0
+  ) => {
+    geo.computeBoundingBox();
+    const own = (mat as THREE.MeshStandardMaterial).clone();
+    const m = new THREE.Mesh(geo, own);
+    m.userData.ord = stage / MAX_STAGE;
+    m.userData.sink = (geo.boundingBox ? geo.boundingBox.max.y : 1) + 0.08;
+    m.userData.glow = own.emissiveIntensity > 0 ? own.emissiveIntensity : 0;
+    m.userData.isEmissive = own.emissiveIntensity > 0;
+    if (m.userData.isEmissive) {
+      own.emissiveIntensity = 0; // lights come on in the deploy phase
+    } else {
+      own.emissive.setHex(0xff5c1e); // sinter heat while emerging
+      own.emissiveIntensity = 0;
+    }
     group.add(m);
     meshes.push(m);
     if (sample) sampleGeos.push(geo);
@@ -103,19 +124,24 @@ export function buildReactor(): ReactorBuild {
   // ---- foundation slab ----
   add(
     new THREE.CylinderGeometry(towerX + towerR + 0.5, towerX + towerR + 0.75, 0.42, 64, 1).translate(0, 0.1, 0),
-    concreteDark
+    concreteDark,
+    true,
+    0
   );
 
   // ---- containment: cylinder + hemisphere dome + steel lip ----
-  add(new THREE.CylinderGeometry(cR, cR * 1.03, cH, 64, 1).translate(0, cH / 2, 0), concrete);
+  add(new THREE.CylinderGeometry(cR, cR * 1.03, cH, 64, 1).translate(0, cH / 2, 0), concrete, true, 1);
   add(
     new THREE.SphereGeometry(cR, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.5).translate(0, cH, 0),
-    concrete
+    concrete,
+    true,
+    2
   );
   add(
     new THREE.CylinderGeometry(cR * 1.05, cR * 1.05, 0.13, 64, 1).translate(0, cH, 0),
     steel,
-    false
+    false,
+    3
   );
   // vertical buttress ribs (between the window columns)
   for (let i = 0; i < 8; i++) {
@@ -123,57 +149,64 @@ export function buildReactor(): ReactorBuild {
     const rib = new THREE.BoxGeometry(0.1, cH, 0.16);
     rib.translate(0, cH / 2, cR);
     rib.rotateY(-a);
-    add(rib, concreteDark, false);
+    add(rib, concreteDark, false, 3);
   }
   // antenna mast + beacon on the dome apex
   add(
     new THREE.CylinderGeometry(0.02, 0.05, 0.85, 16).translate(0, cH + domeH + 0.4, 0),
     steel,
-    false
+    false,
+    8
   );
-  add(new THREE.SphereGeometry(0.06, 16, 12).translate(0, cH + domeH + 0.86, 0), beaconMat, false);
+  add(new THREE.SphereGeometry(0.06, 16, 12).translate(0, cH + domeH + 0.86, 0), beaconMat, false, 9);
 
   // ---- cooling towers: smooth lathe + rim cap + skirt + feed pipe ----
   const towerTops: { x: number; y: number; z: number }[] = [];
   for (const sx of [-1, 1]) {
     add(
       new THREE.LatheGeometry(towerProfile(towerH, towerR), 64).translate(sx * towerX, 0, towerZ),
-      concrete
+      concrete,
+      true,
+      4
     );
     add(
       new THREE.CylinderGeometry(towerR * 0.76, towerR * 0.8, 0.16, 48, 1, true).translate(sx * towerX, towerH - 0.06, towerZ),
       steelDark,
-      false
+      false,
+      5
     );
     add(
       new THREE.CylinderGeometry(towerR * 1.06, towerR * 1.2, 0.24, 48).translate(sx * towerX, 0.12, towerZ),
       concreteDark,
-      false
+      false,
+      4
     );
     const span = towerX - cR - 0.3;
     const pipe = new THREE.CylinderGeometry(0.09, 0.09, span, 24);
     pipe.rotateZ(Math.PI / 2);
     pipe.translate(sx * (cR + 0.15 + span / 2), 0.52, towerZ * 0.5);
-    add(pipe, steel);
+    add(pipe, steel, true, 5);
     for (const f of [0.35, 0.72]) {
       add(
         new THREE.CylinderGeometry(0.05, 0.06, 0.5, 12).translate(sx * (cR + 0.15 + span * f), 0.26, towerZ * 0.5),
         steel,
-        false
+        false,
+        5
       );
     }
     towerTops.push({ x: sx * towerX, y: towerH, z: towerZ });
   }
 
   // ---- turbine hall + rooftop ridge + door + vent stacks ----
-  add(new THREE.BoxGeometry(3.4, 0.95, 1.5).translate(0, 0.55, 2.55), clad);
-  add(new THREE.BoxGeometry(2.9, 0.12, 0.46).translate(0, 1.08, 2.55), steel, false);
-  add(new THREE.BoxGeometry(0.34, 0.5, 0.05).translate(0.95, 0.27, 3.31), darkWin, false);
+  add(new THREE.BoxGeometry(3.4, 0.95, 1.5).translate(0, 0.55, 2.55), clad, true, 6);
+  add(new THREE.BoxGeometry(2.9, 0.12, 0.46).translate(0, 1.08, 2.55), steel, false, 6);
+  add(new THREE.BoxGeometry(0.34, 0.5, 0.05).translate(0.95, 0.27, 3.31), darkWin, false, 7);
   for (const vx of [-1, 1]) {
     add(
       new THREE.CylinderGeometry(0.11, 0.13, 0.7, 20).translate(vx * 1.1, 1.35, 2.55),
       steel,
-      false
+      false,
+      7
     );
   }
   // steam lines from the containment into the hall
@@ -181,10 +214,10 @@ export function buildReactor(): ReactorBuild {
     const line = new THREE.CylinderGeometry(0.1, 0.1, 1.3, 24);
     line.rotateX(Math.PI / 2);
     line.translate(px, 0.44, cR + 0.6);
-    add(line, steel);
+    add(line, steel, true, 7);
   }
   // auxiliary block
-  add(new THREE.BoxGeometry(1.0, 0.6, 0.9).translate(-2.05, 0.35, 2.1), clad);
+  add(new THREE.BoxGeometry(1.0, 0.6, 0.9).translate(-2.05, 0.35, 2.1), clad, true, 6);
 
   // ---- perimeter light posts ----
   const postRing = towerX + towerR - 0.1;
@@ -192,8 +225,8 @@ export function buildReactor(): ReactorBuild {
     const a = (i / 6) * Math.PI * 2 + 0.4;
     const px = Math.cos(a) * postRing;
     const pz = Math.sin(a) * postRing;
-    add(new THREE.CylinderGeometry(0.03, 0.045, 0.55, 10).translate(px, 0.58, pz), steel, false);
-    add(new THREE.SphereGeometry(0.055, 12, 8).translate(px, 0.9, pz), glowWin, false);
+    add(new THREE.CylinderGeometry(0.03, 0.045, 0.55, 10).translate(px, 0.58, pz), steel, false, 8);
+    add(new THREE.SphereGeometry(0.055, 12, 8).translate(px, 0.9, pz), glowWin, false, 9);
   }
 
   // ---- emissive windows ----
@@ -212,7 +245,7 @@ export function buildReactor(): ReactorBuild {
     const box = new THREE.BoxGeometry(0.12, 0.22, 0.06);
     box.rotateY(ry);
     box.translate(x, y, z);
-    add(box, Math.random() < 0.66 ? glowWin : darkWin, false);
+    add(box, Math.random() < 0.66 ? glowWin : darkWin, false, 9);
   }
 
   // ---- sample the structural surface for the dust-morph targets ----
@@ -235,7 +268,10 @@ export function buildReactor(): ReactorBuild {
   const height = cH + domeH;
 
   const dispose = () => {
-    for (const m of meshes) m.geometry.dispose();
+    for (const m of meshes) {
+      m.geometry.dispose();
+      (m.material as THREE.Material).dispose();
+    }
     for (const mat of mats) mat.dispose();
   };
 

@@ -139,6 +139,19 @@
   z-index: 2;
 }
 
+/* mission-phase HUD — EXTRACT / PROCESS / SINTER / DEPLOY */
+.eb-phase {
+  position: absolute;
+  left: clamp(1.25rem, 5vw, 5rem);
+  bottom: clamp(2.4rem, 7vh, 4rem);
+  z-index: 2;
+  font-family: var(--font-cmono), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(214, 217, 226, 0.72);
+}
+
 /* lead line floats in space, in the path of the descending laser */
 .eb-hero-foot {
   position: absolute;

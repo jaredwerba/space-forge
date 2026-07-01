@@ -102,8 +102,9 @@ export default function EbExperience() {
   const beamRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLDivElement>(null);
+  const phaseRef = useRef<HTMLDivElement>(null);
   // GSAP-driven dust->reactor transform (build = dust flying to the surface,
-  // solid = dust hardening into the mesh). Read by the canvas each frame.
+  // solid = piece-by-piece assembly). Read by the canvas each frame.
   const morphRef = useRef({ build: 0, solid: 0 });
   const [copied, setCopied] = useState(false);
 
@@ -187,7 +188,7 @@ export default function EbExperience() {
         // dust->reactor transform, GSAP-driven: every dust mote flies onto the
         // reactor surface (build), then hardens into the solid model (solid)
         .to(morphRef.current, { build: 1, ease: "power2.out", duration: 0.2 }, 0.5)
-        .to(morphRef.current, { solid: 1, ease: "power1.inOut", duration: 0.14 }, 0.71);
+        .to(morphRef.current, { solid: 1, ease: "power1.inOut", duration: 0.34 }, 0.56);
 
       // NOTE: the lead doesn't shatter here — the canvas layer dissolves it
       // into real regolith dust as the laser beam crosses each glyph.
@@ -315,13 +316,28 @@ export default function EbExperience() {
     const { group: reactor, meshes, targets, count, radius, height, towerTops, dispose } =
       buildReactor();
     for (const m of meshes) {
-      const mat = m.material as THREE.Material;
-      mat.transparent = true;
-      mat.opacity = 0;
-      m.castShadow = false; // enabled once the structure hardens
+      m.visible = false; // buried below the surface until its stage rises
+      m.castShadow = false;
       m.receiveShadow = true;
     }
     scene.add(reactor);
+
+    // molten sinter perimeter — a glowing print-bed ring under the build site
+    const ringR = radius + 0.4;
+    const ringGeo = new THREE.RingGeometry(ringR - 0.22, ringR + 0.16, 96);
+    ringGeo.rotateX(-Math.PI / 2);
+    ringGeo.translate(0, 0.04, 0);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xff6a1f,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+      side: THREE.DoubleSide,
+    });
+    const sinterRing = new THREE.Mesh(ringGeo, ringMat);
+    scene.add(sinterRing);
 
     // dust cloud — regolith ejecta. Every grain launches from the impact pit
     // on a ballistic vacuum parabola and rains down onto its own spot on the
@@ -716,6 +732,14 @@ export default function EbExperience() {
     let raf = 0;
     let last = 0;
     let shadowOn = false;
+    // mission-phase HUD (mirrors lunarforgespace.com's four-step process)
+    const PHASES = [
+      "PHASE 01 / 04 · EXTRACT",
+      "PHASE 02 / 04 · PROCESS",
+      "PHASE 03 / 04 · SINTER",
+      "PHASE 04 / 04 · DEPLOY",
+    ];
+    let lastPhase = -1;
     // laser fires in from the screen's top-left corner toward the strike
     // point; the source is re-anchored to the corner every frame from the
     // camera frustum so it stays pinned while the camera moves
@@ -734,6 +758,7 @@ export default function EbExperience() {
       // GSAP drives the dust->reactor transform; scene orbits after it hardens
       const build = reduce ? 1 : morphRef.current.build;
       const solid = reduce ? 1 : morphRef.current.solid;
+      const airborne = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.06)));
       // eased over the last fifth of the track so the full turn ramps in and
       // out gracefully instead of whipping around linearly
       const sceneSpin = smooth(Math.min(1, Math.max(0, (p - 0.8) / 0.2)));
@@ -764,15 +789,31 @@ export default function EbExperience() {
         .multiplyScalar(dist * 2.4)
         .add(camera.position);
 
-      // the reactor holds a fixed orientation; the camera orbit turns the scene.
-      // The solid mesh fades in UNDER the dust (full by solid 0.55) so it reads
-      // as the dust hardening into the model, not a crossfade.
+      // piece-by-piece assembly: each component rises OUT of the regolith in
+      // its stage order, glowing sinter-hot as it breaches and cooling as it
+      // seats. Emissive parts (windows, lamps, beacon) power on at deploy.
       reactor.rotation.y = 0;
-      const meshOp = Math.min(1, solid / 0.55);
-      for (const m of meshes) (m.material as THREE.Material).opacity = meshOp;
-      // shadows switch on once the structure is mostly hardened (an
-      // invisible transparent mesh would otherwise cast a full shadow)
-      const showShadow = meshOp > 0.45;
+      const lightsOn = smooth(Math.min(1, Math.max(0, (solid - 0.72) / 0.28)));
+      for (const m of meshes) {
+        const ud = m.userData as { ord: number; sink: number; glow: number; isEmissive: boolean };
+        const rise = smooth(Math.min(1, Math.max(0, (solid - ud.ord * 0.55) / 0.45)));
+        m.visible = rise > 0.002;
+        m.position.y = -ud.sink * (1 - rise);
+        const mat = m.material as THREE.MeshStandardMaterial;
+        if (ud.isEmissive) {
+          mat.emissiveIntensity = ud.glow * lightsOn;
+        } else if (rise > 0 && rise < 1) {
+          mat.emissiveIntensity = 1.8 * Math.pow(1 - rise, 1.6);
+        } else {
+          mat.emissiveIntensity = 0;
+        }
+      }
+      // molten perimeter ring — burns while the site is printing, then cools
+      ringMat.opacity =
+        airborne * (1 - solid) * (0.32 + 0.14 * Math.sin(now * 0.012));
+      sinterRing.visible = ringMat.opacity > 0.01;
+      // shadows switch on once the structure is mostly assembled
+      const showShadow = solid > 0.5;
       if (showShadow !== shadowOn) {
         shadowOn = showShadow;
         for (const m of meshes) m.castShadow = showShadow;
@@ -780,7 +821,6 @@ export default function EbExperience() {
 
       // dust — erupts at the strike (p~0.5); each mote flies onto its surface
       // target (staggered), then dissolves once the mesh has hardened under it
-      const airborne = smooth(Math.min(1, Math.max(0, (p - 0.5) / 0.06)));
       const dustFade = Math.min(1, Math.max(0, (1 - solid) / 0.45));
       const dustOp = 0.95 * airborne * dustFade;
       dustMat.uniforms.uOpacity.value = dustOp;
@@ -964,6 +1004,13 @@ export default function EbExperience() {
       }
       steamMat.opacity = 0.34 * solid;
 
+      // mission-phase HUD
+      const phase = p < 0.5 ? 0 : p < 0.62 ? 1 : p < 0.88 ? 2 : 3;
+      if (phase !== lastPhase) {
+        lastPhase = phase;
+        if (phaseRef.current) phaseRef.current.textContent = PHASES[phase];
+      }
+
       // per-star sparkle
       starMat.uniforms.uTime.value = now * 0.001;
 
@@ -999,6 +1046,8 @@ export default function EbExperience() {
       rockMat.dispose();
       flare.geometry.dispose();
       flareMat.dispose();
+      ringGeo.dispose();
+      ringMat.dispose();
       composer.dispose();
       envTex.dispose();
       renderer.dispose();
@@ -1051,7 +1100,7 @@ export default function EbExperience() {
             <canvas ref={canvasRef} className="eb-hero-canvas" aria-hidden />
             <div className="eb-hero-inner eb-wrap text-center">
               <p className="eb-label" data-reveal>
-                LunarForge — Field Log 01
+                LunarForge — Fission infrastructure, built on the Moon
               </p>
               <h1 className="eb-display mx-auto mt-5 text-[clamp(1.9rem,8vw,4.8rem)]">
                 <span ref={line1Ref} className="block">
@@ -1068,9 +1117,12 @@ export default function EbExperience() {
                 ref={leadRef}
                 className="eb-lead eb-lead-strong mx-auto max-w-[42ch] text-center"
               >
-                A field record of building the first reactor housing on the Moon —
-                from regolith, by laser.
+                Launch the core. We build the rest.
               </p>
+            </div>
+
+            <div ref={phaseRef} className="eb-phase" aria-hidden>
+              PHASE 01 / 04 · EXTRACT
             </div>
           </div>
         </section>
