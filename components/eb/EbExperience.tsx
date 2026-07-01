@@ -340,10 +340,11 @@ export default function EbExperience() {
     scene.add(sinterRing);
 
     // dust cloud — regolith ejecta. Every grain launches from the impact pit
-    // on a ballistic vacuum parabola and rains down onto its own spot on the
-    // reactor's surface, so the eruption IS the assembly.
+    // on a ballistic vacuum parabola and rains back down onto the ground
+    // around the build site (the pieces themselves rise from the surface).
     const cur = new Float32Array(count * 3);
     const org = new Float32Array(count * 3); // launch points in the impact pit
+    const land = new Float32Array(count * 3); // ground landing spots
     const arcH = new Float32Array(count); // per-grain parabola apex height
     const delay = new Float32Array(count); // per-grain stagger
     const DELAY_MAX = 0.4;
@@ -359,7 +360,12 @@ export default function EbExperience() {
       cur[k] = org[k];
       cur[k + 1] = org[k + 1];
       cur[k + 2] = org[k + 2];
-      const range = Math.hypot(targets[k] - org[k], targets[k + 2] - org[k + 2]);
+      const la = Math.random() * Math.PI * 2;
+      const lr = 0.8 + Math.sqrt(Math.random()) * (radius + 2.2);
+      land[k] = Math.cos(la) * lr;
+      land[k + 1] = 0.04 + Math.random() * 0.1;
+      land[k + 2] = Math.sin(la) * lr;
+      const range = Math.hypot(land[k] - org[k], land[k + 2] - org[k + 2]);
       arcH[i] = 1.2 + range * (0.45 + Math.random() * 0.5) + Math.random() * 0.8;
       delay[i] = Math.random() * DELAY_MAX;
       dSize[i] = 0.05 + Math.random() * Math.random() * 0.17;
@@ -832,13 +838,13 @@ export default function EbExperience() {
           const e = smooth(Math.min(1, Math.max(0, (build - delay[i]) / span)));
           const j = (1 - e) * 0.1;
           // ballistic arc: linear ground track + 4e(1-e) vacuum parabola
-          cur[k] = org[k] + (targets[k] - org[k]) * e + (Math.random() - 0.5) * j;
+          cur[k] = org[k] + (land[k] - org[k]) * e + (Math.random() - 0.5) * j;
           cur[k + 1] =
             org[k + 1] +
-            (targets[k + 1] - org[k + 1]) * e +
+            (land[k + 1] - org[k + 1]) * e +
             arcH[i] * 4 * e * (1 - e) +
             (Math.random() - 0.5) * j * 0.5;
-          cur[k + 2] = org[k + 2] + (targets[k + 2] - org[k + 2]) * e + (Math.random() - 0.5) * j;
+          cur[k + 2] = org[k + 2] + (land[k + 2] - org[k + 2]) * e + (Math.random() - 0.5) * j;
         }
         dustGeo.attributes.position.needsUpdate = true;
       }
